@@ -107,32 +107,96 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
     def biblia_digital(self, request):
         """
         Reporte Biblia Digital
-        Filtra por servicio, fecha e idioma
+        Devuelve detalles de reservas para crear órdenes de servicio
         """
-        servicio_id = request.query_params.get('servicio')
-        fecha = request.query_params.get('fecha')
-        idioma = request.query_params.get('idioma')
-
         queryset = self.get_queryset()
+
+        # Filtros
+        servicio_id = request.query_params.get('servicio')
+        fecha_gte = request.query_params.get('fecha__gte')
+        fecha_lte = request.query_params.get('fecha__lte')
+        fecha_range = request.query_params.get('fecha__range')
+        seleccionado = request.query_params.get('seleccionado')
 
         if servicio_id:
             queryset = queryset.filter(servicio_id=servicio_id)
-        if fecha:
-            queryset = queryset.filter(cuando=fecha)
-        if idioma and idioma != 'todos':
-            queryset = queryset.filter(idioma=idioma)
 
-        # Agregar información de la reserva padre
-        queryset = queryset.select_related('pertenece_a')
+        if fecha_range:
+            # formato: "fecha_desde,fecha_hasta"
+            fechas = fecha_range.split(',')
+            if len(fechas) == 2:
+                queryset = queryset.filter(
+                    cuando__range=[fechas[0], fechas[1]])
+        else:
+            if fecha_gte:
+                queryset = queryset.filter(cuando__gte=fecha_gte)
+            if fecha_lte:
+                queryset = queryset.filter(cuando__lte=fecha_lte)
 
-        serializer = self.get_serializer(queryset, many=True)
+        if seleccionado is not None:
+            is_selected = seleccionado.lower() == 'true'
+            queryset = queryset.filter(seleccionado=is_selected)
 
-        # Calcular total de pasajeros
-        total_pax = queryset.aggregate(total=Sum('numero_pax'))['total'] or 0
+        # Paginación y ordenamiento
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 20))
+        ordering = request.query_params.get('ordering', '-cuando')
+
+        # Mapear campos de ordenamiento a campos del modelo
+        ordering_map = {
+            'reserva_fecha': 'pertenece_a__fecha',
+            'reserva_numero': 'pertenece_a__numero',
+            'cliente_nombre': 'pertenece_a__cliente__nombre',
+            'pasajero': 'pertenece_a__pasajero',
+            'servicio_nombre': 'servicio__nombre',
+            'lugar_nombre': 'recoger_en__nombre',
+            '-reserva_fecha': '-pertenece_a__fecha',
+            '-reserva_numero': '-pertenece_a__numero',
+            '-cliente_nombre': '-pertenece_a__cliente__nombre',
+            '-pasajero': '-pertenece_a__pasajero',
+            '-servicio_nombre': '-servicio__nombre',
+            '-lugar_nombre': '-recoger_en__nombre',
+        }
+
+        # Aplicar ordenamiento mapeado
+        ordering_field = ordering_map.get(ordering, ordering)
+        queryset = queryset.order_by(ordering_field)
+
+        # Contar total
+        total_count = queryset.count()
+
+        # Aplicar paginación
+        start = (page - 1) * page_size
+        end = start + page_size
+        queryset = queryset[start:end]
+
+        # Serializar con datos adicionales
+        results = []
+        for detalle in queryset:
+            results.append({
+                'id': detalle.id,
+                'reserva_id': detalle.pertenece_a.id,
+                'reserva_numero': detalle.pertenece_a.numero,
+                'reserva_fecha': detalle.pertenece_a.fecha,
+                'cliente_id': detalle.pertenece_a.cliente.id if detalle.pertenece_a.cliente else None,
+                'cliente_nombre': detalle.pertenece_a.cliente.nombre if detalle.pertenece_a.cliente else '',
+                'pasajero': detalle.pertenece_a.pasajero,
+                'servicio_id': detalle.servicio.id,
+                'servicio_nombre': detalle.servicio.nombre,
+                'lugar_id': detalle.recoger_en.id if detalle.recoger_en else None,
+                'lugar_nombre': detalle.recoger_en.nombre if detalle.recoger_en else '',
+                'cuando': detalle.cuando,
+                'numero_pax': detalle.numero_pax,
+                'total': float(detalle.total),
+                'idioma': detalle.idioma,
+                'seleccionado': detalle.seleccionado,
+            })
 
         return Response({
-            'detalles': serializer.data,
-            'total_pasajeros': total_pax
+            'count': total_count,
+            'next': None,
+            'previous': None,
+            'results': results
         })
 
 

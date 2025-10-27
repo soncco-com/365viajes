@@ -51,16 +51,15 @@ class Reserva(models.Model):
 
 
 class ReservaDetalle(models.Model):
-
     pertenece_a = models.ForeignKey(Reserva, on_delete=models.PROTECT)
     numero_pax = models.IntegerField()
     servicio = models.ForeignKey('base.Servicio', on_delete=models.PROTECT)
     recoger_en = models.ForeignKey('base.Lugar', on_delete=models.PROTECT)
     cuando = models.DateField()
-    total = models.DecimalField(
-        max_digits=11, decimal_places=2, default=Decimal('0.00'))
     seleccionado = models.BooleanField(default=False)
     idioma = models.CharField(max_length=2, choices=IDIOMAS, default='es')
+    total = models.DecimalField(
+        max_digits=11, decimal_places=2, default=Decimal('0.00'))
 
     def __str__(self):
         return '%s pertenece a %s' % (self.servicio.nombre, self.pertenece_a.id)
@@ -77,10 +76,10 @@ class ReservaAdicionalDetalle(models.Model):
 
 class OrdenServicio(models.Model):
     fecha = models.DateField()
+    servicio = models.ForeignKey('base.Servicio', on_delete=models.PROTECT)
     chofer = models.ForeignKey('base.Chofer', on_delete=models.PROTECT)
     guia = models.ForeignKey('base.Guia', on_delete=models.PROTECT)
-    servicio = models.ForeignKey('base.Servicio', on_delete=models.PROTECT)
-    idioma = models.CharField(max_length=2, choices=IDIOMAS, default='es')
+    idioma = models.CharField(max_length=2, choices=IDIOMAS)
 
     class Meta:
         verbose_name_plural = 'Órdenes de Servicio'

@@ -87,11 +87,14 @@ class ChoferSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     grupos = serializers.SerializerMethodField()
+    groups = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=User.groups.field.remote_field.model.objects.all()
+    )
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name',
-                  'last_name', 'is_active', 'grupos']
+                  'last_name', 'is_active', 'is_staff', 'grupos', 'groups']
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_grupos(self, obj):
@@ -99,17 +102,23 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
+        groups = validated_data.pop('groups', [])
         user = User.objects.create(**validated_data)
         if password:
             user.set_password(password)
-            user.save()
+        if groups:
+            user.groups.set(groups)
+        user.save()
         return user
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
+        groups = validated_data.pop('groups', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
+        if groups is not None:
+            instance.groups.set(groups)
         instance.save()
         return instance

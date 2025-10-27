@@ -1,12 +1,12 @@
 """
 ViewSets para el app base
 """
-from rest_framework import viewsets, filters, status
-from rest_framework.decorators import action
+from rest_framework import viewsets, filters, status, serializers
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 
@@ -169,7 +169,7 @@ class GuiaViewSet(viewsets.ModelViewSet):
 
 
 class ChoferViewSet(viewsets.ModelViewSet):
-    """ViewSet para Choferes (Transportes)"""
+    """ViewSet para Choferes"""
     queryset = Chofer.objects.all()
     serializer_class = ChoferSerializer
     filter_backends = [DjangoFilterBackend,
@@ -188,6 +188,12 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ['username', 'first_name', 'last_name', 'email']
     ordering_fields = '__all__'
 
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """Endpoint para obtener datos del usuario actual"""
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'])
     def cambiar_password(self, request, pk=None):
         """Endpoint para cambiar password de un usuario"""
@@ -198,3 +204,15 @@ class UserViewSet(viewsets.ModelViewSet):
         user.set_password(password)
         user.save()
         return Response({'message': 'Password cambiado exitosamente'})
+
+
+class GroupViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para Grupos (solo lectura)"""
+    queryset = Group.objects.all()
+    serializer_class = serializers.Serializer
+
+    def list(self, request):
+        """Listar todos los grupos"""
+        groups = Group.objects.all()
+        data = [{'id': g.id, 'name': g.name} for g in groups]
+        return Response(data)
