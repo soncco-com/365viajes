@@ -31,7 +31,9 @@
               emit-value
               map-options
               clearable
-              filled
+              fill-input
+              outlined
+              dense
             />
           </div>
           <div class="col-12 col-md-3 flex items-end">
@@ -318,7 +320,7 @@ const loadDetalles = async (props) => {
       params.seleccionado = filters.value.seleccionado
     }
 
-    const response = await api.get('reservas/biblia-digital/', { params })
+    const response = await api.get('reservas/reserva-detalles/biblia_digital/', { params })
 
     detalles.value = response.data.results
     pagination.value.page = page

@@ -11,7 +11,9 @@
               v-model="filters.search"
               label="Buscar"
               placeholder="Buscar por nombre"
-              filled
+              fill-input
+              outlined
+              dense
               clearable
               @keyup.enter="loadAdicionales"
             >
@@ -28,7 +30,9 @@
               emit-value
               map-options
               clearable
-              filled
+              fill-input
+              outlined
+              dense
             />
           </div>
           <div class="col-12 col-md-3 flex items-end">

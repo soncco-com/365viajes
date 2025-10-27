@@ -16,10 +16,12 @@
               v-model="filters.estado"
               :options="estadoOptions"
               label="Estado"
-              filled
               emit-value
               map-options
               clearable
+              fill-input
+              outlined
+              dense
             />
           </div>
           <div class="col-12 col-md-2 flex items-center">

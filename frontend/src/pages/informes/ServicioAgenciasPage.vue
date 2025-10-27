@@ -16,7 +16,7 @@
               v-model="filters.cliente"
               label="Agencia"
               endpoint="base/clientes"
-              option-label="nombre_comercial"
+              option-label="nombre"
             />
           </div>
           <div class="col-12 col-md-2 flex items-center">

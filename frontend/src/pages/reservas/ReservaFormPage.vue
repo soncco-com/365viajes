@@ -6,363 +6,594 @@
     />
 
     <q-form @submit="saveReserva" class="q-mt-md">
-      <!-- Datos principales -->
-      <q-card flat bordered>
-        <q-card-section>
-          <div class="text-h6 q-mb-md">Datos de la Reserva</div>
+      <q-stepper v-model="step" vertical color="primary" animated>
+        <q-step :name="1" title="Datos Principales" icon="info" :done="step > 1">
+          <q-card flat bordered>
+            <q-card-section>
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-4">
+                  <date-picker
+                    v-model="reserva.fecha"
+                    label="Fecha *"
+                    :rules="[(val) => !!val || 'La fecha es requerida']"
+                  />
+                </div>
 
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-4">
-              <date-picker
-                v-model="reserva.fecha"
-                label="Fecha"
-                :rules="[(val) => !!val || 'La fecha es requerida']"
-                required
-              />
-            </div>
-
-            <div class="col-12 col-md-4">
-              <autocomplete-input
-                v-model="reserva.cliente"
-                label="Agencia"
-                endpoint="base/clientes"
-                option-label="nombre"
-                option-value="id"
-                :rules="[(val) => !!val || 'La agencia es requerida']"
-                required
-              />
-            </div>
-
-            <div class="col-12 col-md-4">
-              <q-input
-                v-model="reserva.pasajero"
-                label="Pasajero"
-                filled
-                :rules="[(val) => !!val || 'El pasajero es requerido']"
-                required
-              />
-            </div>
-
-            <div class="col-12 col-md-6">
-              <q-input
-                v-model="reserva.observaciones"
-                label="Observaciones"
-                filled
-                type="textarea"
-                rows="3"
-              />
-            </div>
-
-            <div class="col-12 col-md-3">
-              <q-select
-                v-model="reserva.estado"
-                label="Estado"
-                :options="estadoOptions"
-                emit-value
-                map-options
-                filled
-                :rules="[(val) => (val !== null && val !== undefined) || 'El estado es requerido']"
-                required
-              />
-            </div>
-
-            <div class="col-12 col-md-3" v-if="isEditing && reserva.numero">
-              <q-input v-model="reserva.numero" label="Número" filled readonly bg-color="grey-3" />
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
-
-      <!-- Detalles de servicios -->
-      <q-card flat bordered class="q-mt-md">
-        <q-card-section>
-          <div class="row items-center q-mb-md">
-            <div class="text-h6 col">Servicios</div>
-            <q-btn
-              color="primary"
-              icon="add"
-              label="Agregar Servicio"
-              size="sm"
-              @click="addDetalle"
-            />
-          </div>
-
-          <q-table
-            :rows="reserva.detalles"
-            :columns="detallesColumns"
-            row-key="temp_id"
-            flat
-            bordered
-            :hide-pagination="true"
-            :rows-per-page-options="[0]"
-          >
-            <template v-slot:body="props">
-              <q-tr :props="props">
-                <q-td key="servicio" :props="props">
+                <div class="col-12 col-md-4">
                   <autocomplete-input
-                    v-model="props.row.servicio"
-                    endpoint="base/servicios"
+                    v-model="reserva.cliente"
+                    label="Agencia *"
+                    endpoint="base/clientes"
                     option-label="nombre"
-                    option-value="id"
-                    dense
-                    @update:model-value="updateDetalleSubtotal(props.row)"
-                  />
-                </q-td>
-                <q-td key="lugar" :props="props">
-                  <autocomplete-input
-                    v-model="props.row.lugar"
-                    endpoint="base/lugares"
-                    option-label="nombre"
-                    option-value="id"
-                    dense
-                  />
-                </q-td>
-                <q-td key="numero_pax" :props="props">
+                    :rules="[(val) => !!val || 'La agencia es requerida']"
+                  >
+                    <template #after>
+                      <q-btn
+                        round
+                        dense
+                        flat
+                        icon="add"
+                        color="primary"
+                        @click="showClienteDialog = true"
+                      >
+                        <q-tooltip>Crear nueva agencia</q-tooltip>
+                      </q-btn>
+                    </template>
+                  </autocomplete-input>
+                </div>
+
+                <div class="col-12 col-md-4">
                   <q-input
-                    v-model.number="props.row.numero_pax"
-                    type="number"
+                    v-model="reserva.pasajero"
+                    label="Pasajero *"
+                    outlined
                     dense
-                    filled
-                    min="1"
-                    @update:model-value="updateDetalleSubtotal(props.row)"
+                    :rules="[(val) => !!val || 'El pasajero es requerido']"
                   />
-                </q-td>
-                <q-td key="precio_unitario" :props="props">
-                  <q-input
-                    v-model.number="props.row.precio_unitario"
-                    type="number"
+                </div>
+
+                <div class="col-12 col-md-3">
+                  <q-select
+                    v-model="reserva.estado"
+                    :options="estadoOptions"
+                    label="Estado *"
+                    outlined
                     dense
-                    filled
-                    prefix="S/"
+                    emit-value
+                    map-options
+                    :rules="[(val) => val !== null || 'El estado es requerido']"
+                  />
+                </div>
+
+                <div class="col-12 col-md-3">
+                  <q-select
+                    v-model="reserva.tipo_pago"
+                    :options="tipoPagoOptions"
+                    label="Tipo de Pago"
+                    outlined
+                    dense
+                    clearable
+                    emit-value
+                    map-options
+                  />
+                </div>
+
+                <div class="col-12 col-md-3">
+                  <q-select
+                    v-model="reserva.tipo_documento"
+                    :options="tipoDocumentoOptions"
+                    label="Tipo de Documento"
+                    outlined
+                    dense
+                    clearable
+                    emit-value
+                    map-options
+                  />
+                </div>
+
+                <div class="col-12 col-md-3">
+                  <q-input
+                    v-model="reserva.total"
+                    label="Total"
+                    outlined
+                    dense
                     readonly
-                    bg-color="grey-3"
-                  />
-                </q-td>
-                <q-td key="subtotal" :props="props">
-                  <span class="text-weight-bold">
-                    S/ {{ props.row.subtotal?.toFixed(2) || '0.00' }}
-                  </span>
-                </q-td>
-                <q-td key="actions" :props="props">
-                  <q-btn
-                    flat
-                    dense
-                    round
-                    icon="delete"
-                    color="negative"
-                    size="sm"
-                    @click="removeDetalle(props.rowIndex)"
-                  />
-                </q-td>
-              </q-tr>
-            </template>
-
-            <template v-slot:bottom-row>
-              <q-tr>
-                <q-td colspan="4" class="text-right text-weight-bold"> Subtotal Servicios: </q-td>
-                <q-td colspan="2" class="text-weight-bold text-primary">
-                  S/ {{ subtotalServicios.toFixed(2) }}
-                </q-td>
-              </q-tr>
-            </template>
-          </q-table>
-        </q-card-section>
-      </q-card>
-
-      <!-- Adicionales -->
-      <q-card flat bordered class="q-mt-md">
-        <q-card-section>
-          <div class="row items-center q-mb-md">
-            <div class="text-h6 col">Adicionales</div>
-            <q-btn
-              color="primary"
-              icon="add"
-              label="Agregar Adicional"
-              size="sm"
-              @click="addAdicional"
-            />
-          </div>
-
-          <q-table
-            :rows="reserva.adicionales"
-            :columns="adicionalesColumns"
-            row-key="temp_id"
-            flat
-            bordered
-            :hide-pagination="true"
-            :rows-per-page-options="[0]"
-          >
-            <template v-slot:body="props">
-              <q-tr :props="props">
-                <q-td key="adicional" :props="props">
-                  <autocomplete-input
-                    v-model="props.row.adicional"
-                    endpoint="base/adicionales"
-                    option-label="nombre"
-                    option-value="id"
-                    dense
-                    @update:model-value="updateAdicionalSubtotal(props.row)"
-                  />
-                </q-td>
-                <q-td key="cantidad" :props="props">
-                  <q-input
-                    v-model.number="props.row.cantidad"
-                    type="number"
-                    dense
-                    filled
-                    min="1"
-                    @update:model-value="updateAdicionalSubtotal(props.row)"
-                  />
-                </q-td>
-                <q-td key="precio_unitario" :props="props">
-                  <q-input
-                    v-model.number="props.row.precio_unitario"
-                    type="number"
-                    dense
-                    filled
                     prefix="S/"
-                    readonly
-                    bg-color="grey-3"
                   />
-                </q-td>
-                <q-td key="contable" :props="props">
-                  <q-checkbox
-                    v-model="props.row.contable"
-                    dense
-                    @update:model-value="calculateTotal"
-                  />
-                </q-td>
-                <q-td key="subtotal" :props="props">
-                  <span class="text-weight-bold">
-                    S/ {{ props.row.subtotal?.toFixed(2) || '0.00' }}
-                  </span>
-                </q-td>
-                <q-td key="actions" :props="props">
-                  <q-btn
-                    flat
-                    dense
-                    round
-                    icon="delete"
-                    color="negative"
-                    size="sm"
-                    @click="removeAdicional(props.rowIndex)"
-                  />
-                </q-td>
-              </q-tr>
-            </template>
+                </div>
 
-            <template v-slot:bottom-row>
-              <q-tr>
-                <q-td colspan="4" class="text-right text-weight-bold"> Subtotal Adicionales: </q-td>
-                <q-td colspan="2" class="text-weight-bold text-primary">
-                  S/ {{ subtotalAdicionales.toFixed(2) }}
-                </q-td>
-              </q-tr>
-              <q-tr v-if="totalNoContable > 0">
-                <q-td colspan="4" class="text-right text-weight-bold text-negative">
-                  Total No Contable (descuento):
-                </q-td>
-                <q-td colspan="2" class="text-weight-bold text-negative">
-                  - S/ {{ totalNoContable.toFixed(2) }}
-                </q-td>
-              </q-tr>
-            </template>
-          </q-table>
-        </q-card-section>
-      </q-card>
-
-      <!-- Total -->
-      <q-card flat bordered class="q-mt-md bg-grey-2">
-        <q-card-section>
-          <div class="row justify-end">
-            <div class="col-12 col-md-4">
-              <div class="text-h4 text-right text-primary">
-                Total: S/ {{ reserva.total?.toFixed(2) || '0.00' }}
+                <div class="col-12">
+                  <q-input
+                    v-model="reserva.observaciones"
+                    label="Observaciones"
+                    outlined
+                    dense
+                    type="textarea"
+                    rows="3"
+                  />
+                </div>
               </div>
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
+            </q-card-section>
+          </q-card>
 
-      <!-- Botones de acción -->
-      <div class="row q-mt-md q-gutter-sm justify-end">
-        <q-btn label="Cancelar" color="grey" flat @click="$router.push('/reservas')" />
-        <q-btn label="Guardar" type="submit" color="primary" :loading="saving" :disable="saving" />
-      </div>
+          <div class="q-mt-md">
+            <q-btn label="Siguiente" color="primary" @click="step = 2" />
+          </div>
+        </q-step>
+
+        <q-step :name="2" title="Servicios" icon="tour" :done="step > 2">
+          <q-card flat bordered>
+            <q-card-section>
+              <div class="q-mb-md">
+                <q-btn
+                  label="Agregar Servicio"
+                  color="primary"
+                  icon="add"
+                  @click="addServicio"
+                  size="sm"
+                />
+              </div>
+
+              <q-table
+                :rows="reserva.detalles"
+                :columns="serviciosColumns"
+                row-key="id"
+                flat
+                bordered
+                dense
+              >
+                <template v-slot:body-cell-servicio="props">
+                  <q-td :props="props">
+                    <autocomplete-input
+                      v-model="props.row.servicio"
+                      endpoint="base/servicios"
+                      option-label="nombre"
+                      dense
+                      hide-bottom-space
+                      @update:model-value="calcularSubtotalServicio(props.row)"
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-lugar="props">
+                  <q-td :props="props">
+                    <autocomplete-input
+                      v-model="props.row.recoger_en"
+                      endpoint="base/lugares"
+                      option-label="nombre"
+                      dense
+                      hide-bottom-space
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-cuando="props">
+                  <q-td :props="props">
+                    <q-input
+                      v-model="props.row.cuando"
+                      type="time"
+                      dense
+                      outlined
+                      hide-bottom-space
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-idioma="props">
+                  <q-td :props="props">
+                    <q-select
+                      v-model="props.row.idioma"
+                      :options="idiomaOptions"
+                      dense
+                      outlined
+                      hide-bottom-space
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-numero_pax="props">
+                  <q-td :props="props">
+                    <q-input
+                      v-model.number="props.row.numero_pax"
+                      type="number"
+                      dense
+                      outlined
+                      hide-bottom-space
+                      min="1"
+                      @update:model-value="calcularSubtotalServicio(props.row)"
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-subtotal="props">
+                  <q-td :props="props">
+                    <div class="text-weight-medium">
+                      S/ {{ props.row.total?.toFixed(2) || '0.00' }}
+                    </div>
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-acciones="props">
+                  <q-td :props="props">
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      color="negative"
+                      icon="delete"
+                      @click="removeServicio(props.rowIndex)"
+                      size="sm"
+                    />
+                  </q-td>
+                </template>
+              </q-table>
+
+              <div class="q-mt-md text-right">
+                <div class="text-h6">Subtotal Servicios: S/ {{ subtotalServicios.toFixed(2) }}</div>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <div class="q-mt-md q-gutter-sm">
+            <q-btn label="Anterior" color="primary" flat @click="step = 1" />
+            <q-btn label="Siguiente" color="primary" @click="step = 3" />
+          </div>
+        </q-step>
+
+        <q-step :name="3" title="Adicionales" icon="add_circle" :done="step > 3">
+          <q-card flat bordered>
+            <q-card-section>
+              <div class="q-mb-md">
+                <q-btn
+                  label="Agregar Adicional"
+                  color="primary"
+                  icon="add"
+                  @click="addAdicional"
+                  size="sm"
+                />
+              </div>
+
+              <q-table
+                :rows="reserva.adicionales"
+                :columns="adicionalesColumns"
+                row-key="id"
+                flat
+                bordered
+                dense
+              >
+                <template v-slot:body-cell-adicional="props">
+                  <q-td :props="props">
+                    <autocomplete-input
+                      v-model="props.row.adicional"
+                      endpoint="base/adicionales"
+                      option-label="nombre"
+                      dense
+                      hide-bottom-space
+                      @update:model-value="calcularSubtotalAdicional(props.row)"
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-cuando="props">
+                  <q-td :props="props">
+                    <q-input
+                      v-model="props.row.cuando"
+                      type="time"
+                      dense
+                      outlined
+                      hide-bottom-space
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-cantidad="props">
+                  <q-td :props="props">
+                    <q-input
+                      v-model.number="props.row.cantidad"
+                      type="number"
+                      dense
+                      outlined
+                      hide-bottom-space
+                      min="1"
+                      @update:model-value="calcularSubtotalAdicional(props.row)"
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-contable="props">
+                  <q-td :props="props">
+                    <q-checkbox
+                      v-model="props.row.contable"
+                      dense
+                      @update:model-value="calcularTotal"
+                    />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-subtotal="props">
+                  <q-td :props="props">
+                    <div class="text-weight-medium">
+                      S/ {{ props.row.subtotal?.toFixed(2) || '0.00' }}
+                    </div>
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-acciones="props">
+                  <q-td :props="props">
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      color="negative"
+                      icon="delete"
+                      @click="removeAdicional(props.rowIndex)"
+                      size="sm"
+                    />
+                  </q-td>
+                </template>
+              </q-table>
+
+              <div class="q-mt-md text-right">
+                <div class="text-body1">
+                  Subtotal Adicionales: S/ {{ subtotalAdicionales.toFixed(2) }}
+                </div>
+                <div class="text-body1 text-negative">
+                  Total No Contable: -S/ {{ totalNoContable.toFixed(2) }}
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <div class="q-mt-md q-gutter-sm">
+            <q-btn label="Anterior" color="primary" flat @click="step = 2" />
+            <q-btn label="Siguiente" color="primary" @click="step = 4" />
+          </div>
+        </q-step>
+
+        <q-step :name="4" title="Resumen" icon="check_circle">
+          <q-card flat bordered>
+            <q-card-section>
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-6">
+                  <q-card flat bordered>
+                    <q-card-section>
+                      <div class="text-h6 q-mb-md">Datos Principales</div>
+                      <div class="q-gutter-sm">
+                        <div><strong>Fecha:</strong> {{ reserva.fecha }}</div>
+                        <div><strong>Agencia:</strong> {{ reserva.cliente?.nombre || 'N/A' }}</div>
+                        <div><strong>Pasajero:</strong> {{ reserva.pasajero }}</div>
+                        <div><strong>Estado:</strong> {{ getEstadoLabel(reserva.estado) }}</div>
+                        <div v-if="reserva.tipo_pago">
+                          <strong>Tipo de Pago:</strong> {{ reserva.tipo_pago }}
+                        </div>
+                        <div v-if="reserva.tipo_documento">
+                          <strong>Tipo de Documento:</strong> {{ reserva.tipo_documento }}
+                        </div>
+                        <div v-if="reserva.observaciones">
+                          <strong>Observaciones:</strong> {{ reserva.observaciones }}
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <q-card flat bordered class="bg-primary text-white">
+                    <q-card-section>
+                      <div class="text-h6 q-mb-md">Totales</div>
+                      <div class="q-gutter-sm">
+                        <div class="text-h6">Servicios: S/ {{ subtotalServicios.toFixed(2) }}</div>
+                        <div class="text-h6">
+                          Adicionales: S/ {{ subtotalAdicionales.toFixed(2) }}
+                        </div>
+                        <div class="text-h6 text-negative">
+                          No Contable: -S/ {{ totalNoContable.toFixed(2) }}
+                        </div>
+                        <q-separator dark class="q-my-md" />
+                        <div class="text-h4">
+                          <strong>TOTAL: S/ {{ reserva.total?.toFixed(2) || '0.00' }}</strong>
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
+
+                <div class="col-12" v-if="reserva.detalles.length > 0">
+                  <q-card flat bordered>
+                    <q-card-section>
+                      <div class="text-h6 q-mb-md">Servicios ({{ reserva.detalles.length }})</div>
+                      <q-list dense separator>
+                        <q-item v-for="(detalle, index) in reserva.detalles" :key="index">
+                          <q-item-section>
+                            <q-item-label>{{ detalle.servicio?.nombre || 'N/A' }}</q-item-label>
+                            <q-item-label caption>
+                              {{ detalle.recoger_en?.nombre || 'N/A' }} - {{ detalle.cuando }} -
+                              {{ detalle.idioma }} - {{ detalle.numero_pax }} pax
+                            </q-item-label>
+                          </q-item-section>
+                          <q-item-section side>
+                            <q-item-label
+                              >S/ {{ detalle.total?.toFixed(2) || '0.00' }}</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-card-section>
+                  </q-card>
+                </div>
+
+                <div class="col-12" v-if="reserva.adicionales.length > 0">
+                  <q-card flat bordered>
+                    <q-card-section>
+                      <div class="text-h6 q-mb-md">
+                        Adicionales ({{ reserva.adicionales.length }})
+                      </div>
+                      <q-list dense separator>
+                        <q-item v-for="(adicional, index) in reserva.adicionales" :key="index">
+                          <q-item-section>
+                            <q-item-label>{{ adicional.adicional?.nombre || 'N/A' }}</q-item-label>
+                            <q-item-label caption>
+                              {{ adicional.cuando }} - {{ adicional.cantidad }} x S/
+                              {{ adicional.adicional?.precio || 0 }}
+                              <q-badge
+                                v-if="!adicional.contable"
+                                color="negative"
+                                label="No contable"
+                                class="q-ml-sm"
+                              />
+                            </q-item-label>
+                          </q-item-section>
+                          <q-item-section side>
+                            <q-item-label
+                              >S/ {{ adicional.subtotal?.toFixed(2) || '0.00' }}</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-card-section>
+                  </q-card>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <div class="q-mt-md q-gutter-sm">
+            <q-btn label="Anterior" color="primary" flat @click="step = 3" />
+            <q-btn label="Guardar" color="positive" type="submit" icon="save" />
+            <q-btn label="Cancelar" color="negative" flat @click="goBack" />
+          </div>
+        </q-step>
+      </q-stepper>
     </q-form>
+
+    <q-dialog v-model="showClienteDialog">
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Nueva Agencia</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input v-model="nuevoCliente.nombre" label="Nombre *" outlined dense />
+          <q-input
+            v-model="nuevoCliente.telefono"
+            label="Teléfono"
+            outlined
+            dense
+            class="q-mt-sm"
+          />
+          <q-input
+            v-model="nuevoCliente.email"
+            label="Email"
+            type="email"
+            outlined
+            dense
+            class="q-mt-sm"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" color="primary" v-close-popup />
+          <q-btn label="Guardar" color="primary" @click="createCliente" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
-import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import DatePicker from 'src/components/DatePicker.vue'
+import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const { notifySuccess, notifyError } = useNotify()
 
-const reservaId = route.params.id
-const isEditing = computed(() => !!reservaId)
-const saving = ref(false)
+const step = ref(1)
+const isEditing = computed(() => !!route.params.id)
+const showClienteDialog = ref(false)
 
-let detalleCounter = 0
-let adicionalCounter = 0
+const reserva = ref({
+  fecha: null,
+  cliente: null,
+  pasajero: '',
+  estado: '1',
+  tipo_pago: null,
+  tipo_documento: null,
+  total: 0,
+  observaciones: '',
+  detalles: [],
+  adicionales: [],
+})
+
+const nuevoCliente = ref({
+  nombre: '',
+  telefono: '',
+  email: '',
+})
 
 const estadoOptions = [
   { label: 'Pagado', value: '0' },
   { label: 'Deuda', value: '1' },
 ]
 
-const reserva = ref({
-  fecha: new Date().toISOString().split('T')[0],
-  cliente: null,
-  pasajero: '',
-  observaciones: '',
-  estado: '1',
-  numero: null,
-  total: 0,
-  detalles: [],
-  adicionales: [],
-})
-
-const detallesColumns = [
-  { name: 'servicio', label: 'Servicio', field: 'servicio', align: 'left', style: 'width: 30%' },
-  { name: 'lugar', label: 'Hotel', field: 'lugar', align: 'left', style: 'width: 25%' },
-  { name: 'numero_pax', label: 'PAX', field: 'numero_pax', align: 'center', style: 'width: 10%' },
+const tipoPagoOptions = [
+  { value: '0', label: 'Efectivo' },
+  { value: '1', label: 'Depósito' },
+  { value: '2', label: 'Otro' },
+]
+const tipoDocumentoOptions = [
   {
-    name: 'precio_unitario',
-    label: 'Precio',
-    field: 'precio_unitario',
-    align: 'right',
-    style: 'width: 12%',
+    value: '0',
+    label: 'Boleta',
   },
-  { name: 'subtotal', label: 'Subtotal', field: 'subtotal', align: 'right', style: 'width: 13%' },
-  { name: 'actions', label: 'Acciones', field: 'actions', align: 'center', style: 'width: 10%' },
+  {
+    value: '1',
+    label: 'Factura',
+  },
+  {
+    value: '2',
+    label: 'Otros',
+  },
+]
+const idiomaOptions = [
+  {
+    value: 'es',
+    label: 'Español',
+  },
+  {
+    value: 'en',
+    label: 'Inglés',
+  },
+  { value: 'xx', label: 'Bilingüe' },
+]
+
+const serviciosColumns = [
+  { name: 'servicio', label: 'Servicio', field: 'servicio', align: 'left' },
+  { name: 'lugar', label: 'Lugar', field: 'recoger_en', align: 'left' },
+  { name: 'cuando', label: 'Hora', field: 'cuando', align: 'center' },
+  { name: 'idioma', label: 'Idioma', field: 'idioma', align: 'center' },
+  { name: 'numero_pax', label: 'PAX', field: 'numero_pax', align: 'center' },
+  { name: 'subtotal', label: 'Subtotal', field: 'total', align: 'right' },
+  { name: 'acciones', label: 'Acciones', align: 'center' },
 ]
 
 const adicionalesColumns = [
-  { name: 'adicional', label: 'Adicional', field: 'adicional', align: 'left', style: 'width: 35%' },
-  { name: 'cantidad', label: 'Cantidad', field: 'cantidad', align: 'center', style: 'width: 15%' },
-  {
-    name: 'precio_unitario',
-    label: 'Precio',
-    field: 'precio_unitario',
-    align: 'right',
-    style: 'width: 15%',
-  },
-  { name: 'contable', label: 'Contable', field: 'contable', align: 'center', style: 'width: 10%' },
-  { name: 'subtotal', label: 'Subtotal', field: 'subtotal', align: 'right', style: 'width: 15%' },
-  { name: 'actions', label: 'Acciones', field: 'actions', align: 'center', style: 'width: 10%' },
+  { name: 'adicional', label: 'Adicional', field: 'adicional', align: 'left' },
+  { name: 'cuando', label: 'Hora', field: 'cuando', align: 'center' },
+  { name: 'cantidad', label: 'Cantidad', field: 'cantidad', align: 'center' },
+  { name: 'contable', label: 'Contable', field: 'contable', align: 'center' },
+  { name: 'subtotal', label: 'Subtotal', field: 'subtotal', align: 'right' },
+  { name: 'acciones', label: 'Acciones', align: 'center' },
 ]
 
 const subtotalServicios = computed(() => {
-  return reserva.value.detalles.reduce((sum, detalle) => sum + (detalle.subtotal || 0), 0)
+  return reserva.value.detalles.reduce((sum, detalle) => sum + (detalle.total || 0), 0)
 })
 
 const subtotalAdicionales = computed(() => {
@@ -371,148 +602,126 @@ const subtotalAdicionales = computed(() => {
 
 const totalNoContable = computed(() => {
   return reserva.value.adicionales
-    .filter((a) => !a.contable)
+    .filter((adicional) => !adicional.contable)
     .reduce((sum, adicional) => sum + (adicional.subtotal || 0), 0)
 })
 
-const addDetalle = () => {
+watch([subtotalServicios, subtotalAdicionales, totalNoContable], () => {
+  calcularTotal()
+})
+
+function calcularTotal() {
+  reserva.value.total = subtotalServicios.value + subtotalAdicionales.value - totalNoContable.value
+}
+
+function calcularSubtotalServicio(detalle) {
+  if (detalle.servicio && detalle.numero_pax) {
+    detalle.total = detalle.servicio.precio * detalle.numero_pax
+  } else {
+    detalle.total = 0
+  }
+  calcularTotal()
+}
+
+function calcularSubtotalAdicional(adicional) {
+  if (adicional.adicional && adicional.cantidad) {
+    adicional.subtotal = adicional.adicional.precio * adicional.cantidad
+  } else {
+    adicional.subtotal = 0
+  }
+  calcularTotal()
+}
+
+function addServicio() {
   reserva.value.detalles.push({
-    temp_id: ++detalleCounter,
+    id: Date.now(),
     servicio: null,
-    lugar: null,
+    recoger_en: null,
+    cuando: '',
+    idioma: 'Español',
     numero_pax: 1,
-    precio_unitario: 0,
-    subtotal: 0,
+    total: 0,
+    seleccionado: false,
   })
 }
 
-const removeDetalle = (index) => {
+function removeServicio(index) {
   reserva.value.detalles.splice(index, 1)
-  calculateTotal()
+  calcularTotal()
 }
 
-const addAdicional = () => {
+function addAdicional() {
   reserva.value.adicionales.push({
-    temp_id: ++adicionalCounter,
+    id: Date.now(),
     adicional: null,
+    cuando: '',
     cantidad: 1,
-    precio_unitario: 0,
     contable: true,
     subtotal: 0,
   })
 }
 
-const removeAdicional = (index) => {
+function removeAdicional(index) {
   reserva.value.adicionales.splice(index, 1)
-  calculateTotal()
+  calcularTotal()
 }
 
-const updateDetalleSubtotal = async (detalle) => {
-  if (detalle.servicio) {
-    try {
-      const response = await api.get(`base/servicios/${detalle.servicio}/`)
-      detalle.precio_unitario = parseFloat(response.data.precio)
-    } catch (error) {
-      console.error('Error al obtener precio del servicio:', error)
-    }
-  }
-
-  detalle.subtotal = (detalle.numero_pax || 0) * (detalle.precio_unitario || 0)
-  calculateTotal()
+function getEstadoLabel(value) {
+  const option = estadoOptions.find((opt) => opt.value === value)
+  return option ? option.label : 'N/A'
 }
 
-const updateAdicionalSubtotal = async (adicional) => {
-  if (adicional.adicional) {
-    try {
-      const response = await api.get(`base/adicionales/${adicional.adicional}/`)
-      adicional.precio_unitario = parseFloat(response.data.precio)
-      adicional.contable = response.data.contable
-    } catch (error) {
-      console.error('Error al obtener precio del adicional:', error)
-    }
-  }
-
-  adicional.subtotal = (adicional.cantidad || 0) * (adicional.precio_unitario || 0)
-  calculateTotal()
-}
-
-const calculateTotal = () => {
-  reserva.value.total = subtotalServicios.value + subtotalAdicionales.value - totalNoContable.value
-}
-
-const loadReserva = async () => {
+async function loadReserva() {
   try {
-    const response = await api.get(`reservas/reservas/${reservaId}/`)
-    const data = response.data
-
+    const response = await api.get(`reservas/reservas/${route.params.id}/`)
     reserva.value = {
-      fecha: data.fecha,
-      cliente: data.cliente,
-      pasajero: data.pasajero,
-      observaciones: data.observaciones || '',
-      estado: data.estado,
-      numero: data.numero,
-      total: parseFloat(data.total),
-      detalles: data.detalles.map((d) => ({
-        id: d.id,
-        temp_id: ++detalleCounter,
-        servicio: d.servicio,
-        lugar: d.lugar,
-        numero_pax: d.numero_pax,
-        precio_unitario: parseFloat(d.precio_unitario || 0),
-        subtotal: parseFloat(d.subtotal || 0),
-      })),
-      adicionales: data.adicionales.map((a) => ({
-        id: a.id,
-        temp_id: ++adicionalCounter,
-        adicional: a.adicional,
-        cantidad: a.cantidad,
-        precio_unitario: parseFloat(a.precio_unitario || 0),
-        contable: a.contable,
-        subtotal: parseFloat(a.subtotal || 0),
-      })),
+      ...response.data,
+      detalles: response.data.detalles || [],
+      adicionales: response.data.adicionales || [],
     }
+    calcularTotal()
   } catch (error) {
     notifyError('Error al cargar la reserva')
     console.error(error)
-    router.push('/reservas')
   }
 }
 
-const saveReserva = async () => {
-  if (!reserva.value.detalles.length) {
-    notifyError('Debe agregar al menos un servicio')
-    return
-  }
-
-  saving.value = true
-
+async function saveReserva() {
   try {
-    const payload = {
+    const data = {
       fecha: reserva.value.fecha,
-      cliente: reserva.value.cliente,
+      cliente: reserva.value.cliente?.id,
       pasajero: reserva.value.pasajero,
-      observaciones: reserva.value.observaciones,
       estado: reserva.value.estado,
+      tipo_pago: reserva.value.tipo_pago,
+      tipo_documento: reserva.value.tipo_documento,
       total: reserva.value.total,
-      detalles: reserva.value.detalles.map((d) => ({
-        id: d.id,
-        servicio: d.servicio,
-        lugar: d.lugar,
-        numero_pax: d.numero_pax,
+      observaciones: reserva.value.observaciones,
+      detalles: reserva.value.detalles.map((detalle) => ({
+        id: detalle.id > 1000000000000 ? null : detalle.id,
+        servicio: detalle.servicio?.id,
+        recoger_en: detalle.recoger_en?.id,
+        cuando: detalle.cuando,
+        idioma: detalle.idioma,
+        numero_pax: detalle.numero_pax,
+        total: detalle.total,
+        seleccionado: detalle.seleccionado,
       })),
-      adicionales: reserva.value.adicionales.map((a) => ({
-        id: a.id,
-        adicional: a.adicional,
-        cantidad: a.cantidad,
+      adicionales: reserva.value.adicionales.map((adicional) => ({
+        id: adicional.id > 1000000000000 ? null : adicional.id,
+        adicional: adicional.adicional?.id,
+        cuando: adicional.cuando,
+        cantidad: adicional.cantidad,
+        contable: adicional.contable,
+        subtotal: adicional.subtotal,
       })),
     }
 
     if (isEditing.value) {
-      await api.put(`reservas/reservas/${reservaId}/`, payload)
+      await api.put(`reservas/reservas/${route.params.id}/`, data)
       notifySuccess('Reserva actualizada correctamente')
     } else {
-      await api.post('reservas/reservas/', payload)
+      await api.post('reservas/reservas/', data)
       notifySuccess('Reserva creada correctamente')
     }
 
@@ -520,16 +729,35 @@ const saveReserva = async () => {
   } catch (error) {
     notifyError('Error al guardar la reserva')
     console.error(error)
-  } finally {
-    saving.value = false
   }
+}
+
+async function createCliente() {
+  try {
+    const response = await api.post('base/clientes/', {
+      nombre: nuevoCliente.value.nombre,
+      telefono: nuevoCliente.value.telefono,
+      email: nuevoCliente.value.email,
+      activo: true,
+    })
+
+    reserva.value.cliente = response.data
+    showClienteDialog.value = false
+    nuevoCliente.value = { nombre: '', telefono: '', email: '' }
+    notifySuccess('Agencia creada correctamente')
+  } catch (error) {
+    notifyError('Error al crear la agencia')
+    console.error(error)
+  }
+}
+
+function goBack() {
+  router.push('/reservas')
 }
 
 onMounted(() => {
   if (isEditing.value) {
     loadReserva()
-  } else {
-    addDetalle()
   }
 })
 </script>

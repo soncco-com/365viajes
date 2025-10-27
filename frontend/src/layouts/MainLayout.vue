@@ -1,14 +1,33 @@
 <template>
   <q-layout view="hHh lpR fFf">
     <!-- Header no fijo con navegación -->
-    <q-header class="bg-primary text-white">
+    <q-header class="bg-deep-orange-8 text-white">
       <q-toolbar>
         <q-toolbar-title class="text-weight-bold"> 365 Viajes </q-toolbar-title>
 
         <!-- Menú de navegación -->
         <q-tabs v-if="isAuthenticated" align="right" inline-label shrink>
-          <!-- Reservas -->
-          <q-route-tab name="reservas" label="Reservas" icon="event_note" to="/reservas" />
+          <!-- Reservas con dropdown -->
+          <q-btn-dropdown flat label="Reservas" icon="event_note" dropdown-icon="expand_more">
+            <q-list>
+              <q-item clickable v-close-popup to="/reservas/crear">
+                <q-item-section avatar>
+                  <q-icon name="add_circle" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Crear Reserva</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/reservas">
+                <q-item-section avatar>
+                  <q-icon name="list" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Ver Reservas</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
 
           <!-- Informes con dropdown -->
           <q-btn-dropdown flat label="Informes" icon="assessment" dropdown-icon="expand_more">

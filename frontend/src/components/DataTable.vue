@@ -14,7 +14,7 @@
   >
     <!-- Slot para filtros personalizados -->
     <template v-slot:top>
-      <div class="row q-gutter-md full-width">
+      <div class="row q-gutter-md full-width items-center">
         <slot name="filters"></slot>
 
         <q-space />
@@ -33,9 +33,12 @@
           </template>
         </q-input>
 
-        <!-- Botón de crear -->
+        <!-- Slot personalizado para botones en la parte superior derecha -->
+        <slot name="top-right"></slot>
+
+        <!-- Botón de crear (si no se usa el slot top-right) -->
         <q-btn
-          v-if="createButton"
+          v-if="createButton && !$slots['top-right']"
           color="primary"
           icon="add"
           :label="createLabel"

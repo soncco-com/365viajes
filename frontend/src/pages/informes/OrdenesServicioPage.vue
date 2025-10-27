@@ -13,7 +13,7 @@
               v-model="filters.guia"
               label="Guía"
               endpoint="base/guias"
-              option-label="nombre_completo"
+              option-label="nombre"
             />
           </div>
           <div class="col-12 col-md-3">
@@ -21,7 +21,7 @@
               v-model="filters.chofer"
               label="Chofer"
               endpoint="base/choferes"
-              option-label="nombre_completo"
+              option-label="nombre"
             />
           </div>
           <div class="col-12 col-md-2 flex items-center">

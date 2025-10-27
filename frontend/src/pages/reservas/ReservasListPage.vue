@@ -31,7 +31,9 @@
               emit-value
               map-options
               clearable
-              filled
+              fill-input
+              outlined
+              dense
             />
           </div>
           <div class="col-12 col-md-4 flex items-end">
@@ -91,9 +93,6 @@
 
       <template v-slot:body-cell-actions="props">
         <q-td :props="props">
-          <q-btn flat dense round icon="visibility" color="info" @click="viewReserva(props.row)">
-            <q-tooltip>Ver detalles</q-tooltip>
-          </q-btn>
           <q-btn flat dense round icon="edit" color="primary" @click="editReserva(props.row)">
             <q-tooltip>Editar</q-tooltip>
           </q-btn>
@@ -276,10 +275,6 @@ const clearFilters = () => {
     estado: null,
   }
   loadReservas()
-}
-
-const viewReserva = (reserva) => {
-  router.push(`/reservas/${reserva.id}/editar`)
 }
 
 const editReserva = (reserva) => {

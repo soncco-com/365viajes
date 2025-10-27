@@ -8,7 +8,7 @@
     :dense="dense"
     :clearable="clearable"
     :rules="rules"
-    :use-input="useInput"
+    use-input
     :input-debounce="inputDebounce"
     @filter="filterFn"
     @update:model-value="onUpdate"
@@ -16,7 +16,10 @@
     :option-label="optionLabel"
     emit-value
     map-options
-    :behavior="behavior"
+    fill-input
+    :menu-offset="[0, 8]"
+    behavior="menu"
+    :popup-content-class="'autocomplete-popup'"
   >
     <template v-slot:no-option>
       <q-item>
@@ -26,20 +29,28 @@
       </q-item>
     </template>
 
-    <template v-if="allowCreate" v-slot:append>
-      <q-btn flat dense icon="add" color="primary" @click.stop="$emit('create')">
+    <template v-if="allowCreate" v-slot:after>
+      <q-btn flat dense round icon="add" color="primary" @click.stop="$emit('create')" size="sm">
         <q-tooltip>Crear nuevo</q-tooltip>
       </q-btn>
     </template>
 
-    <template v-if="$slots.option" v-slot:option="scope">
-      <slot name="option" v-bind="scope"></slot>
+    <template v-slot:option="scope">
+      <q-item v-bind="scope.itemProps">
+        <q-item-section>
+          <q-item-label>{{ scope.opt[optionLabel] }}</q-item-label>
+          <q-item-label v-if="optionSubLabel && scope.opt[optionSubLabel]" caption>
+            {{ scope.opt[optionSubLabel] }}
+          </q-item-label>
+        </q-item-section>
+      </q-item>
     </template>
   </q-select>
 </template>
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import { useApi } from 'src/composables/useApi'
 
 const props = defineProps({
   modelValue: {
@@ -50,6 +61,10 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  endpoint: {
+    type: String,
+    default: null,
+  },
   options: {
     type: Array,
     default: () => [],
@@ -58,9 +73,9 @@ const props = defineProps({
     type: String,
     default: 'nombre',
   },
-  loading: {
-    type: Boolean,
-    default: false,
+  optionSubLabel: {
+    type: String,
+    default: null,
   },
   outlined: {
     type: Boolean,
@@ -78,10 +93,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  useInput: {
-    type: Boolean,
-    default: true,
-  },
   inputDebounce: {
     type: Number,
     default: 300,
@@ -94,25 +105,54 @@ const props = defineProps({
     type: String,
     default: 'Sin opciones',
   },
-  behavior: {
-    type: String,
-    default: 'dialog',
+  filterActivos: {
+    type: Boolean,
+    default: true,
   },
 })
 
 const emit = defineEmits(['update:modelValue', 'create', 'filter'])
 
+const api = useApi()
 const model = ref(props.modelValue)
-const filteredOptions = ref(props.options)
+const filteredOptions = ref([])
+const allOptions = ref([])
+const loading = ref(false)
+
+const loadOptions = async () => {
+  if (!props.endpoint) {
+    allOptions.value = props.options
+    filteredOptions.value = props.options
+    return
+  }
+
+  loading.value = true
+  try {
+    const params = {}
+    if (props.filterActivos) {
+      params.activo = true
+    }
+
+    const response = await api.get(props.endpoint, { params })
+    allOptions.value = response.data.results || response.data
+    filteredOptions.value = allOptions.value
+  } catch (error) {
+    console.error('Error loading autocomplete options:', error)
+    allOptions.value = []
+    filteredOptions.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const filterFn = (val, update) => {
   update(() => {
     if (val === '') {
-      filteredOptions.value = props.options
+      filteredOptions.value = allOptions.value
     } else {
       const needle = val.toLowerCase()
-      filteredOptions.value = props.options.filter(
-        (v) => v[props.optionLabel].toLowerCase().indexOf(needle) > -1,
+      filteredOptions.value = allOptions.value.filter(
+        (v) => v[props.optionLabel] && v[props.optionLabel].toLowerCase().indexOf(needle) > -1,
       )
     }
   })
@@ -132,15 +172,44 @@ watch(
   },
 )
 
-// Actualizar opciones cuando cambian
+// Actualizar opciones cuando cambian las props
 watch(
   () => props.options,
   (newOptions) => {
-    filteredOptions.value = newOptions
+    if (!props.endpoint) {
+      allOptions.value = newOptions
+      filteredOptions.value = newOptions
+    }
+  },
+)
+
+// Recargar si el endpoint cambia
+watch(
+  () => props.endpoint,
+  () => {
+    if (props.endpoint) {
+      loadOptions()
+    }
   },
 )
 
 onMounted(() => {
-  filteredOptions.value = props.options
+  if (props.endpoint) {
+    loadOptions()
+  } else {
+    allOptions.value = props.options
+    filteredOptions.value = props.options
+  }
+})
+
+// Exponer método para recargar opciones
+defineExpose({
+  reload: loadOptions,
 })
 </script>
+
+<style lang="scss">
+.autocomplete-popup {
+  max-height: 300px;
+}
+</style>
