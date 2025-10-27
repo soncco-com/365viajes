@@ -1,0 +1,30 @@
+services:
+  db:
+    image: mysql:8
+    volumes:
+      - ./dbdata/dbdata:/var/lib/mysql
+    env_file: .env
+
+  redis:
+    image: redis:latest
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - ./dbdata/redisdata:/data
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+
+  pma:
+    image: phpmyadmin:latest
+    ports:
+      - "8800:80"
+    env_file: .env

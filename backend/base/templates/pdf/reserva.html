@@ -1,0 +1,99 @@
+{% extends "pdf/base.html" %} {% block title %}Reserva #{{ reserva.id }}{%
+endblock %} {% block content %}
+<h2 class="text-center">RESERVA #{{ reserva.id }}</h2>
+
+<table class="no-border">
+  <tr>
+    <td class="no-border">
+      <strong>Agencia:</strong> {{ reserva.cliente.nombre }}
+    </td>
+    <td class="no-border"><strong>Fecha:</strong> {{ reserva.fecha }}</td>
+  </tr>
+  <tr>
+    <td class="no-border"><strong>Pasajero:</strong> {{ reserva.pasajero }}</td>
+    <td class="no-border">
+      <strong>Estado:</strong> {{ reserva.get_estado_display }}
+    </td>
+  </tr>
+  <tr>
+    <td class="no-border">
+      <strong>Documento:</strong> {{ reserva.get_tipo_documento_display }}
+    </td>
+    <td class="no-border">
+      <strong>Número:</strong> {{ reserva.numero|default:"-" }}
+    </td>
+  </tr>
+</table>
+
+<h3>Servicios</h3>
+<table>
+  <thead>
+    <tr>
+      <th>N° Pax</th>
+      <th>Servicio</th>
+      <th>Hotel</th>
+      <th>Fecha</th>
+      <th>Idioma</th>
+      <th class="text-right">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for detalle in reserva.detalles %}
+    <tr>
+      <td class="text-center">{{ detalle.numero_pax }}</td>
+      <td>{{ detalle.servicio.nombre }}</td>
+      <td>{{ detalle.recoger_en.nombre }}</td>
+      <td>{{ detalle.cuando }}</td>
+      <td>{{ detalle.get_idioma_display }}</td>
+      <td class="text-right">S/ {{ detalle.total }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if reserva.adicionales %}
+<h3>Adicionales</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Cantidad</th>
+      <th>Adicional</th>
+      <th>Fecha</th>
+      <th class="text-right">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for adicional in reserva.adicionales %}
+    <tr>
+      <td class="text-center">{{ adicional.cantidad }}</td>
+      <td>{{ adicional.adicional.nombre }}</td>
+      <td>{{ adicional.cuando }}</td>
+      <td class="text-right">S/ {{ adicional.total }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<table class="no-border">
+  <tr>
+    <td class="no-border text-right"><strong>Total:</strong></td>
+    <td class="no-border text-right">S/ {{ reserva.total }}</td>
+  </tr>
+  {% if reserva.total_nocontable > 0 %}
+  <tr>
+    <td class="no-border text-right"><strong>Total No Contable:</strong></td>
+    <td class="no-border text-right">S/ {{ reserva.total_nocontable }}</td>
+  </tr>
+  <tr>
+    <td class="no-border text-right"><strong>Total Neto:</strong></td>
+    <td class="no-border text-right">
+      S/ {{ reserva.total|add:reserva.total_nocontable|floatformat:2 }}
+    </td>
+  </tr>
+  {% endif %}
+</table>
+
+{% if reserva.observaciones %}
+<p><strong>Observaciones:</strong> {{ reserva.observaciones }}</p>
+{% endif %} {% endblock %}

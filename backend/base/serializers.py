@@ -1,0 +1,115 @@
+"""
+Serializers para el app base
+"""
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from .models import (
+    OpcionGeneral, Auditoria, Lugar, Formato, Servicio,
+    Adicional, Cliente, Horario, Guia, Chofer
+)
+
+
+class OpcionGeneralSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OpcionGeneral
+        fields = '__all__'
+
+
+class AuditoriaSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(
+        source='usuario.username', read_only=True)
+    accion_display = serializers.CharField(
+        source='get_accion_display', read_only=True)
+    modelo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Auditoria
+        fields = '__all__'
+
+    def get_modelo(self, obj):
+        return str(obj.content_type)
+
+
+class LugarSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lugar
+        fields = '__all__'
+
+
+class FormatoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Formato
+        fields = '__all__'
+
+
+class ServicioSerializer(serializers.ModelSerializer):
+    formato_nombre = serializers.CharField(
+        source='formato.nombre', read_only=True)
+
+    class Meta:
+        model = Servicio
+        fields = '__all__'
+
+
+class AdicionalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Adicional
+        fields = '__all__'
+
+
+class ClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cliente
+        fields = '__all__'
+
+
+class HorarioSerializer(serializers.ModelSerializer):
+    servicio_nombre = serializers.CharField(
+        source='servicio.nombre', read_only=True)
+    lugar_nombre = serializers.CharField(source='lugar.nombre', read_only=True)
+
+    class Meta:
+        model = Horario
+        fields = '__all__'
+
+
+class GuiaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Guia
+        fields = '__all__'
+
+
+class ChoferSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chofer
+        fields = '__all__'
+
+
+class UserSerializer(serializers.ModelSerializer):
+    grupos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name',
+                  'last_name', 'is_active', 'grupos']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def get_grupos(self, obj):
+        return [grupo.name for grupo in obj.groups.all()]
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        user = User.objects.create(**validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance

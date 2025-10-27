@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{% block title %}Reporte{% endblock %}</title>
+  </head>
+  <body>
+    {% if include_header %}
+    <div class="header">
+      <img src="{{ logo_path }}" alt="Logo" />
+      <h1>{{ opciones.nombre_empresa|default:"365 Viajes" }}</h1>
+      <p>{{ opciones.direccion|default:"" }}</p>
+      <p>{{ opciones.telefonos|default:"" }}</p>
+    </div>
+    {% endif %} {% block content %} {% endblock %}
+  </body>
+</html>
