@@ -2,16 +2,23 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Reporte{% endblock %}</title>
   </head>
   <body>
     {% if include_header %}
     <div class="header">
+      {% if logo_path %}
       <img src="{{ logo_path }}" alt="Logo" />
+      {% endif %}
       <h1>{{ opciones.nombre_empresa|default:"365 Viajes" }}</h1>
-      <p>{{ opciones.direccion|default:"" }}</p>
-      <p>{{ opciones.telefonos|default:"" }}</p>
+      {% if opciones.direccion %}
+      <p>{{ opciones.direccion }}</p>
+      {% endif %} {% if opciones.telefonos %}
+      <p>Teléfono: {{ opciones.telefonos }}</p>
+      {% endif %}
     </div>
-    {% endif %} {% block content %} {% endblock %}
+    <hr />
+    {% endif %} {% block content %}{% endblock %}
   </body>
 </html>

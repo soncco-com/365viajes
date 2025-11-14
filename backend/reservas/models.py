@@ -80,6 +80,7 @@ class OrdenServicio(models.Model):
     chofer = models.ForeignKey('base.Chofer', on_delete=models.PROTECT)
     guia = models.ForeignKey('base.Guia', on_delete=models.PROTECT)
     idioma = models.CharField(max_length=2, choices=IDIOMAS)
+    observaciones = models.TextField(null=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'Órdenes de Servicio'

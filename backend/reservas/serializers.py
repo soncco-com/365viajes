@@ -15,10 +15,28 @@ class ReservaDetalleSerializer(serializers.ModelSerializer):
         source='recoger_en.nombre', read_only=True)
     idioma_display = serializers.CharField(
         source='get_idioma_display', read_only=True)
+    # Campos de la reserva para reportes
+    reserva_id = serializers.IntegerField(
+        source='pertenece_a.id', read_only=True)
+    reserva_pasajero = serializers.CharField(
+        source='pertenece_a.pasajero', read_only=True)
+    reserva_estado = serializers.CharField(
+        source='pertenece_a.estado', read_only=True)
+    reserva_estado_display = serializers.CharField(
+        source='pertenece_a.get_estado_display', read_only=True)
 
     class Meta:
         model = ReservaDetalle
         fields = '__all__'
+
+
+class ReservaDetalleWriteSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = ReservaDetalle
+        fields = ['id', 'servicio', 'recoger_en', 'cuando',
+                  'idioma', 'numero_pax', 'total', 'seleccionado']
 
 
 class ReservaAdicionalDetalleSerializer(serializers.ModelSerializer):
@@ -28,10 +46,27 @@ class ReservaAdicionalDetalleSerializer(serializers.ModelSerializer):
         source='adicional.precio', max_digits=11, decimal_places=2, read_only=True)
     adicional_contable = serializers.BooleanField(
         source='adicional.contable', read_only=True)
+    # Campos de la reserva para reportes
+    reserva_id = serializers.IntegerField(
+        source='pertenece_a.id', read_only=True)
+    reserva_pasajero = serializers.CharField(
+        source='pertenece_a.pasajero', read_only=True)
+    reserva_estado = serializers.CharField(
+        source='pertenece_a.estado', read_only=True)
+    reserva_estado_display = serializers.CharField(
+        source='pertenece_a.get_estado_display', read_only=True)
 
     class Meta:
         model = ReservaAdicionalDetalle
         fields = '__all__'
+
+
+class ReservaAdicionalDetalleWriteSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = ReservaAdicionalDetalle
+        fields = ['id', 'adicional', 'cantidad', 'total']
 
 
 class ReservaSerializer(serializers.ModelSerializer):
@@ -55,8 +90,10 @@ class ReservaSerializer(serializers.ModelSerializer):
         source='reservaadicionaldetalle_set', many=True, read_only=True)
 
     # Para escritura
-    detalles_data = serializers.ListField(write_only=True, required=False)
-    adicionales_data = serializers.ListField(write_only=True, required=False)
+    detalles_data = ReservaDetalleWriteSerializer(
+        many=True, write_only=True, required=False)
+    adicionales_data = ReservaAdicionalDetalleWriteSerializer(
+        many=True, write_only=True, required=False)
 
     class Meta:
         model = Reserva
@@ -95,25 +132,72 @@ class ReservaSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        # Actualizar detalles de servicios si se proporcionan
+        # Actualizar detalles de servicios de forma inteligente
         if detalles_data is not None:
-            # Eliminar detalles anteriores
-            instance.reservadetalle_set.all().delete()
-            # Crear nuevos detalles
-            for detalle_data in detalles_data:
-                ReservaDetalle.objects.create(
-                    pertenece_a=instance, **detalle_data)
+            self._update_detalles(instance, detalles_data)
 
-        # Actualizar detalles de adicionales si se proporcionan
+        # Actualizar detalles de adicionales de forma inteligente
         if adicionales_data is not None:
-            # Eliminar adicionales anteriores
-            instance.reservaadicionaldetalle_set.all().delete()
-            # Crear nuevos adicionales
-            for adicional_data in adicionales_data:
-                ReservaAdicionalDetalle.objects.create(
-                    pertenece_a=instance, **adicional_data)
+            self._update_adicionales(instance, adicionales_data)
 
         return instance
+
+    def _update_detalles(self, reserva, detalles_data):
+        """Actualizar detalles de forma inteligente: mantener existentes, actualizar modificados, crear nuevos, eliminar obsoletos"""
+        existing_detalles = {d.id: d for d in reserva.reservadetalle_set.all()}
+        submitted_ids = set()
+
+        for detalle_data in detalles_data:
+            detalle_id = detalle_data.get('id')
+
+            if detalle_id and detalle_id in existing_detalles:
+                # Actualizar detalle existente
+                detalle = existing_detalles[detalle_id]
+                for field, value in detalle_data.items():
+                    if field != 'id':
+                        setattr(detalle, field, value)
+                detalle.save()
+                submitted_ids.add(detalle_id)
+            else:
+                # Crear nuevo detalle
+                # Remover id si existe para crear nuevo
+                detalle_data.pop('id', None)
+                ReservaDetalle.objects.create(
+                    pertenece_a=reserva, **detalle_data)
+
+        # Eliminar detalles que ya no están en la lista
+        for detalle_id, detalle in existing_detalles.items():
+            if detalle_id not in submitted_ids:
+                detalle.delete()
+
+    def _update_adicionales(self, reserva, adicionales_data):
+        """Actualizar adicionales de forma inteligente: mantener existentes, actualizar modificados, crear nuevos, eliminar obsoletos"""
+        existing_adicionales = {
+            a.id: a for a in reserva.reservaadicionaldetalle_set.all()}
+        submitted_ids = set()
+
+        for adicional_data in adicionales_data:
+            adicional_id = adicional_data.get('id')
+
+            if adicional_id and adicional_id in existing_adicionales:
+                # Actualizar adicional existente
+                adicional = existing_adicionales[adicional_id]
+                for field, value in adicional_data.items():
+                    if field != 'id':
+                        setattr(adicional, field, value)
+                adicional.save()
+                submitted_ids.add(adicional_id)
+            else:
+                # Crear nuevo adicional
+                # Remover id si existe para crear nuevo
+                adicional_data.pop('id', None)
+                ReservaAdicionalDetalle.objects.create(
+                    pertenece_a=reserva, **adicional_data)
+
+        # Eliminar adicionales que ya no están en la lista
+        for adicional_id, adicional in existing_adicionales.items():
+            if adicional_id not in submitted_ids:
+                adicional.delete()
 
 
 class OrdenServicioDetalleSerializer(serializers.ModelSerializer):

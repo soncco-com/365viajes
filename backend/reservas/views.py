@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Q, Max, F
 from django.utils import timezone
+from django.http import HttpResponse
 from datetime import datetime
 
 from .models import Reserva, ReservaDetalle, ReservaAdicionalDetalle, OrdenServicio, OrdenServicioDetalle, Gasto
@@ -15,6 +16,7 @@ from .serializers import (
     ReservaSerializer, ReservaDetalleSerializer, ReservaAdicionalDetalleSerializer,
     OrdenServicioSerializer, OrdenServicioDetalleSerializer, GastoSerializer
 )
+from base.utils.pdf_generator import PDFGenerator
 
 
 class ReservaViewSet(viewsets.ModelViewSet):
@@ -84,6 +86,35 @@ class ReservaViewSet(viewsets.ModelViewSet):
             'cantidad': queryset.count()
         })
 
+    @action(detail=True, methods=['get'])
+    def pdf(self, request, pk=None):  # pylint: disable=unused-argument
+        """Genera PDF de la reserva"""
+        reserva = self.get_object()
+
+        # Cargar detalles y adicionales con relaciones
+        detalles = reserva.reservadetalle_set.select_related(
+            'servicio', 'recoger_en').all()
+        adicionales = reserva.reservaadicionaldetalle_set.select_related(
+            'adicional').all()
+
+        # Calcular total neto
+        total_neto = float(reserva.total) - float(reserva.total_nocontable)
+
+        context = {
+            'reserva': reserva,
+            'detalles': detalles,
+            'adicionales': adicionales,
+            'total_neto': total_neto,
+        }
+
+        pdf_gen = PDFGenerator(
+            'pdf/reserva.html', context, orientation='portrait')
+        pdf_bytes = pdf_gen.generate()
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="reserva_{reserva.id}.pdf"'
+        return response
+
 
 class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -98,8 +129,8 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ReservaDetalleSerializer
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['pertenece_a', 'servicio',
-                        'cuando', 'idioma', 'seleccionado']
+    filterset_fields = ['pertenece_a', 'servicio', 'cuando', 'idioma',
+                        'seleccionado', 'pertenece_a__cliente', 'pertenece_a__estado']
     search_fields = ['pertenece_a__pasajero']
     ordering_fields = '__all__'
 
@@ -187,7 +218,7 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
                 'lugar_nombre': detalle.recoger_en.nombre if detalle.recoger_en else '',
                 'cuando': detalle.cuando,
                 'numero_pax': detalle.numero_pax,
-                'total': float(detalle.total),
+                'subtotal': float(detalle.total) if detalle.total else 0.0,
                 'idioma': detalle.idioma,
                 'seleccionado': detalle.seleccionado,
             })
@@ -209,7 +240,8 @@ class ReservaAdicionalDetalleViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ReservaAdicionalDetalleSerializer
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['pertenece_a', 'adicional', 'cuando']
+    filterset_fields = ['pertenece_a', 'adicional', 'cuando',
+                        'pertenece_a__cliente', 'pertenece_a__estado']
     search_fields = ['pertenece_a__pasajero']
     ordering_fields = '__all__'
 

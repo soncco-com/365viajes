@@ -39,8 +39,13 @@ class PDFGenerator:
         for opcion in OpcionGeneral.objects.all():
             opciones[opcion.clave] = opcion.valor
 
+        # Path del logo (ajustar según la ubicación real)
+        logo_path = self.get_static_path('logo.png') if os.path.exists(
+            self.get_static_path('logo.png')) else ''
+
         return {
             'opciones': opciones,
+            'logo_path': logo_path,
             'orientation': self.orientation,
             'include_header': self.include_header,
         }
