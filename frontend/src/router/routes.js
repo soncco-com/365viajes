@@ -118,6 +118,18 @@ const routes = [
         meta: { requiresAdmin: true },
       },
       {
+        path: '/admin/precios-especiales',
+        name: 'admin-precios-especiales',
+        component: () => import('pages/admin/PreciosEspecialesPage.vue'),
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: '/admin/servicio-paradas',
+        name: 'admin-servicio-paradas',
+        component: () => import('pages/admin/ServicioParadasPage.vue'),
+        meta: { requiresAdmin: true },
+      },
+      {
         path: '/admin/horarios',
         name: 'admin-horarios',
         component: () => import('pages/admin/HorariosPage.vue'),

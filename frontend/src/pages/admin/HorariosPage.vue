@@ -36,58 +36,89 @@
 
     <!-- Dialog de formulario -->
     <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs">
-      <q-card :style="$q.screen.gt.xs ? 'min-width: 700px; max-width: 700px' : ''">
-        <q-card-section>
-          <div class="text-h6">{{ isEditing ? 'Editar Horario' : 'Nuevo Horario' }}</div>
+      <q-card :style="$q.screen.gt.xs ? 'min-width: 700px; max-width: 800px' : ''">
+        <q-card-section class="bg-primary text-white">
+          <div class="row items-center">
+            <q-icon :name="isEditing ? 'edit' : 'add'" size="sm" class="q-mr-sm" />
+            <div class="text-h6">{{ isEditing ? 'Editar Horario' : 'Nuevo Horario' }}</div>
+            <q-space />
+            <q-btn flat dense round icon="close" @click="showDialog = false" />
+          </div>
         </q-card-section>
 
+        <q-separator />
+
         <q-card-section class="q-pa-md">
-          <q-form @submit="saveHorario" class="q-gutter-md">
+          <q-form @submit="saveHorario" class="">
             <div class="row q-col-gutter-md">
-              <div class="col-12 col-md-5">
+              <div class="col-12">
+                <div class="text-subtitle2 text-grey-7 q-mb-sm">
+                  <q-icon name="info" size="xs" class="q-mr-xs" />
+                  Configura el horario de recojo para un servicio en un hotel específico
+                </div>
+              </div>
+
+              <div class="col-12 col-md-6">
                 <autocomplete-input
                   v-model="form.servicio"
-                  label="Servicio *"
-                  endpoint="base/servicios"
+                  label="Servicio"
+                  endpoint="base/servicios/"
                   option-label="nombre"
                   :rules="[(val) => !!val || 'El servicio es requerido']"
-                />
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="tour" />
+                  </template>
+                </autocomplete-input>
               </div>
 
-              <div class="col-12 col-md-4">
+              <div class="col-12 col-md-6">
                 <autocomplete-input
                   v-model="form.lugar"
-                  label="Hotel *"
-                  endpoint="base/lugares"
+                  label="Hotel"
+                  endpoint="base/lugares/"
                   option-label="nombre"
                   :rules="[(val) => !!val || 'El hotel es requerido']"
-                />
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="hotel" />
+                  </template>
+                </autocomplete-input>
               </div>
 
-              <div class="col-12 col-md-3">
+              <div class="col-12 col-md-6">
                 <q-input
                   v-model="form.hora"
-                  label="Hora *"
+                  label="Hora de Recojo"
                   outlined
                   dense
                   type="time"
                   :rules="[(val) => !!val || 'La hora es requerida']"
-                />
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="schedule" />
+                  </template>
+                  <template v-slot:hint> Formato 24 horas (ej: 08:30) </template>
+                </q-input>
               </div>
-            </div>
-
-            <div class="row q-gutter-sm justify-end q-mt-md">
-              <q-btn label="Cancelar" color="grey" flat @click="showDialog = false" />
-              <q-btn
-                label="Guardar"
-                type="submit"
-                color="primary"
-                :loading="saving"
-                :disable="saving"
-              />
             </div>
           </q-form>
         </q-card-section>
+
+        <q-separator />
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn label="Cancelar" color="grey" flat @click="showDialog = false" :disable="saving" />
+          <q-btn
+            label="Guardar Horario"
+            color="primary"
+            icon-right="save"
+            @click="saveHorario"
+            :loading="saving"
+            :disable="saving"
+            unelevated
+          />
+        </q-card-actions>
       </q-card>
     </q-dialog>
   </q-page>
@@ -191,10 +222,13 @@ const onRequest = (props) => {
 const openDialog = (horario = null) => {
   if (horario) {
     isEditing.value = true
+    // Asegurar que los autocompletes reciban el objeto completo con id y nombre
     form.value = {
       id: horario.id,
-      servicio: horario.servicio || { id: horario.servicio_id, nombre: horario.servicio_nombre },
-      lugar: horario.lugar || { id: horario.lugar_id, nombre: horario.lugar_nombre },
+      servicio: horario.servicio
+        ? horario.servicio
+        : { id: horario.servicio, nombre: horario.servicio_nombre },
+      lugar: horario.lugar ? horario.lugar : { id: horario.lugar, nombre: horario.lugar_nombre },
       hora: horario.hora,
     }
   } else {

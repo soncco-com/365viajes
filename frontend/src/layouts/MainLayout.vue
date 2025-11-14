@@ -121,6 +121,22 @@
                   <q-item-label>Servicios</q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item clickable v-close-popup to="/admin/precios-especiales">
+                <q-item-section avatar>
+                  <q-icon name="local_offer" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Precios Especiales</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/admin/servicio-paradas">
+                <q-item-section avatar>
+                  <q-icon name="map" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Paradas de Servicios</q-item-label>
+                </q-item-section>
+              </q-item>
               <q-item clickable v-close-popup to="/admin/lugares">
                 <q-item-section avatar>
                   <q-icon name="hotel" />
@@ -365,6 +381,34 @@
               </q-item-section>
               <q-item-section>
                 <q-item-label>Servicios</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/precios-especiales"
+              @click="leftDrawerOpen = false"
+              class="q-pl-lg"
+            >
+              <q-item-section avatar>
+                <q-icon name="local_offer" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Precios Especiales</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/servicio-paradas"
+              @click="leftDrawerOpen = false"
+              class="q-pl-lg"
+            >
+              <q-item-section avatar>
+                <q-icon name="map" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Paradas de Servicios</q-item-label>
               </q-item-section>
             </q-item>
             <q-item

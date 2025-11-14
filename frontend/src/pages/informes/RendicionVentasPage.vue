@@ -1,205 +1,180 @@
 <template>
   <q-page class="q-pa-md">
-    <page-title
-      title="Rendición de Ventas"
-      subtitle="Informe administrativo de ventas por período"
-    />
+    <page-title title="Rendición de Ventas" subtitle="Informe de cobros realizados por reserva" />
 
     <q-card class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-6">
-            <date-range-picker v-model="filters.fecha" label="Rango de fechas" />
+          <div class="col-12 col-md-3">
+            <autocomplete-input
+              v-model="filters.usuario"
+              label="Usuario *"
+              endpoint="base/usuarios/"
+              option-label="username"
+            />
           </div>
           <div class="col-12 col-md-4">
+            <date-range-picker v-model="filters.fecha" label="Rango de fechas *" required />
+          </div>
+          <div class="col-12 col-md-3">
+            <autocomplete-input
+              v-model="filters.agencia"
+              label="Agencia"
+              endpoint="base/clientes/"
+              option-label="nombre"
+              clearable
+            />
+          </div>
+          <div class="col-12 col-md-2">
             <q-select
-              v-model="filters.estado"
-              :options="estadoOptions"
-              label="Estado"
+              v-model="filters.tipo_pago"
+              :options="tipoPagoOptions"
+              label="Tipo de Pago"
               emit-value
               map-options
               clearable
-              fill-input
               outlined
               dense
             />
           </div>
-          <div class="col-12 col-md-2 flex items-center">
+        </div>
+        <div class="row q-mt-md">
+          <div class="col-12 flex justify-end">
             <q-btn
               color="primary"
               label="Buscar"
               icon="search"
               @click="loadRendicion"
               :loading="loading"
+              :disable="!canSearch"
             />
           </div>
         </div>
       </q-card-section>
     </q-card>
 
-    <q-card class="q-mt-md" v-if="resumen">
-      <q-card-section>
-        <div class="text-h6 q-mb-md">Resumen General</div>
-        <div class="row q-col-gutter-md">
-          <div class="col-3">
-            <q-card flat bordered>
-              <q-card-section>
-                <div class="text-grey-7 text-caption">Total Reservas</div>
-                <div class="text-h5 text-primary">{{ resumen.total_reservas }}</div>
-              </q-card-section>
-            </q-card>
-          </div>
-          <div class="col-3">
-            <q-card flat bordered>
-              <q-card-section>
-                <div class="text-grey-7 text-caption">Monto Total</div>
-                <div class="text-h5 text-positive">S/ {{ resumen.monto_total.toFixed(2) }}</div>
-              </q-card-section>
-            </q-card>
-          </div>
-          <div class="col-3">
-            <q-card flat bordered>
-              <q-card-section>
-                <div class="text-grey-7 text-caption">Pagadas</div>
-                <div class="text-h5 text-positive">{{ resumen.pagadas }}</div>
-                <div class="text-caption">S/ {{ resumen.monto_pagadas.toFixed(2) }}</div>
-              </q-card-section>
-            </q-card>
-          </div>
-          <div class="col-3">
-            <q-card flat bordered>
-              <q-card-section>
-                <div class="text-grey-7 text-caption">Con Deuda</div>
-                <div class="text-h5 text-warning">{{ resumen.con_deuda }}</div>
-                <div class="text-caption">S/ {{ resumen.monto_deuda.toFixed(2) }}</div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </div>
-      </q-card-section>
-    </q-card>
-
     <data-table
+      v-if="reservas.length > 0"
       :rows="reservas"
       :columns="columns"
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
-      no-data-label="No se encontraron reservas para el período seleccionado"
+      no-data-label="No se encontraron cobros para los filtros seleccionados"
       class="q-mt-md"
     >
-      <template v-slot:body-cell-estado="props">
-        <q-td :props="props">
-          <q-badge :color="props.row.estado === '0' ? 'positive' : 'warning'">
-            {{ props.row.estado === '0' ? 'Pagado' : 'Deuda' }}
-          </q-badge>
-        </q-td>
+      <template v-slot:body-cell-subtotal="props">
+        <q-td :props="props" class="text-right">S/ {{ props.row.total }}</q-td>
       </template>
 
-      <template v-slot:body-cell-total="props">
-        <q-td :props="props">S/ {{ props.row.total }}</q-td>
-      </template>
-
-      <template v-slot:body-cell-girado_por="props">
-        <q-td :props="props">
-          <div v-if="props.row.girado_por">
-            {{ props.row.girado_por.username }}
-            <div class="text-caption text-grey-7">
-              {{ formatDateTime(props.row.girado_cuando) }}
-            </div>
-          </div>
-        </q-td>
+      <template v-slot:bottom-row>
+        <q-tr class="bg-grey-2 text-weight-bold">
+          <q-td colspan="7" class="text-right">TOTAL:</q-td>
+          <q-td class="text-right">S/ {{ totalGeneral.toFixed(2) }}</q-td>
+        </q-tr>
       </template>
     </data-table>
-
-    <div class="q-mt-md row justify-end">
-      <q-btn
-        color="primary"
-        icon="download"
-        label="Exportar PDF"
-        @click="exportPdf"
-        :loading="exporting"
-      />
-    </div>
   </q-page>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
+import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 
 const api = useApi()
 const { notifyError } = useNotify()
 
 const reservas = ref([])
 const loading = ref(false)
-const exporting = ref(false)
-const filters = ref({ fecha: { from: null, to: null }, estado: null })
-const estadoOptions = [
-  { label: 'Pagado', value: '0' },
-  { label: 'Deuda', value: '1' },
+const filters = ref({
+  usuario: null,
+  fecha: { desde: null, hasta: null },
+  agencia: null,
+  tipo_pago: null,
+})
+
+const tipoPagoOptions = [
+  { label: 'Efectivo', value: '0' },
+  { label: 'Depósito', value: '1' },
+  { label: 'Otro', value: '2' },
 ]
 
 const columns = [
-  { name: 'numero', label: 'N°', field: 'numero', align: 'left', sortable: true },
+  { name: 'id', label: 'ID Reserva', field: 'id', align: 'left', sortable: true },
   {
-    name: 'fecha',
-    label: 'Fecha',
-    field: 'fecha',
+    name: 'cliente',
+    label: 'Agencia',
+    field: 'cliente_nombre',
     align: 'left',
     sortable: true,
+  },
+  {
+    name: 'fecha_primer_servicio',
+    label: 'Fecha 1er Servicio',
+    field: 'fecha_primer_servicio',
+    align: 'center',
+    sortable: true,
     format: (val) => {
-      if (!val) return ''
+      if (!val) return '-'
       const [year, month, day] = val.split('-')
       return `${day}/${month}/${year}`
     },
   },
   {
-    name: 'cliente',
-    label: 'Agencia',
-    field: (row) => row.cliente?.nombre_comercial,
-    align: 'left',
+    name: 'girado_cuando',
+    label: 'Fecha Girado',
+    field: 'girado_cuando',
+    align: 'center',
+    sortable: true,
+    format: (val) => {
+      if (!val) return '-'
+      return new Date(val).toLocaleDateString('es-PE')
+    },
   },
-  { name: 'pasajero', label: 'Pasajero', field: 'pasajero', align: 'left' },
-  { name: 'estado', label: 'Estado', field: 'estado', align: 'center', sortable: true },
-  { name: 'total', label: 'Total', field: 'total', align: 'right', sortable: true },
-  { name: 'girado_por', label: 'Girado por', field: 'girado_por', align: 'left' },
+  { name: 'pasajero', label: 'Pasajeros', field: 'pasajero', align: 'left' },
+  {
+    name: 'tipo_documento',
+    label: 'Comprobante',
+    field: 'tipo_documento_display',
+    align: 'center',
+  },
+  {
+    name: 'tipo_pago',
+    label: 'Tipo Pago',
+    field: 'tipo_pago_display',
+    align: 'center',
+  },
+  { name: 'subtotal', label: 'Subtotal', field: 'total', align: 'right', sortable: true },
 ]
 
 const pagination = ref({
-  sortBy: 'fecha',
+  sortBy: 'girado_cuando',
   descending: true,
   page: 1,
   rowsPerPage: 10,
   rowsNumber: 0,
 })
 
-const resumen = computed(() => {
-  if (reservas.value.length === 0) return null
-
-  const pagadas = reservas.value.filter((r) => r.estado === '0')
-  const conDeuda = reservas.value.filter((r) => r.estado === '1')
-
-  return {
-    total_reservas: pagination.value.rowsNumber,
-    monto_total: reservas.value.reduce((sum, r) => sum + parseFloat(r.total || 0), 0),
-    pagadas: pagadas.length,
-    monto_pagadas: pagadas.reduce((sum, r) => sum + parseFloat(r.total || 0), 0),
-    con_deuda: conDeuda.length,
-    monto_deuda: conDeuda.reduce((sum, r) => sum + parseFloat(r.total || 0), 0),
-  }
+const canSearch = computed(() => {
+  return (
+    filters.value.usuario !== null &&
+    filters.value.fecha.desde !== null &&
+    filters.value.fecha.hasta !== null
+  )
 })
 
-const formatDateTime = (datetime) => {
-  if (!datetime) return ''
-  return new Date(datetime).toLocaleString('es-PE')
-}
+const totalGeneral = computed(() => {
+  return reservas.value.reduce((sum, r) => sum + parseFloat(r.total || 0), 0)
+})
 
 const loadRendicion = async (props) => {
+  if (!canSearch.value) return
+
   loading.value = true
   try {
     const { page, rowsPerPage, sortBy, descending } = props?.pagination || pagination.value
@@ -207,68 +182,48 @@ const loadRendicion = async (props) => {
       page,
       page_size: rowsPerPage,
       ordering: (descending ? '-' : '') + sortBy,
+      estado: '0', // Solo reservas pagadas (con cobro)
     }
 
-    if (filters.value.fecha.from && filters.value.fecha.to) {
-      params.fecha__gte = filters.value.fecha.from
-      params.fecha__lte = filters.value.fecha.to
+    // Filtros obligatorios
+    params.girado_por = filters.value.usuario?.id || filters.value.usuario
+
+    // Asegurar que las fechas estén en formato correcto
+    if (filters.value.fecha.desde) {
+      params.girado_cuando__gte = filters.value.fecha.desde
     }
-    if (filters.value.estado !== null) {
-      params.estado = filters.value.estado
+    if (filters.value.fecha.hasta) {
+      params.girado_cuando__lte = filters.value.fecha.hasta
     }
+
+    // Filtros opcionales
+    if (filters.value.agencia) {
+      params.cliente = filters.value.agencia?.id || filters.value.agencia
+    }
+    if (filters.value.tipo_pago !== null && filters.value.tipo_pago !== undefined) {
+      params.tipo_pago = filters.value.tipo_pago
+    }
+
+    console.log('Parámetros de búsqueda:', params)
 
     const response = await api.get('reservas/reservas/', { params })
-    reservas.value = response.data.results
+    reservas.value = response.data.results || []
     pagination.value = {
       ...pagination.value,
       page,
       rowsPerPage,
       sortBy,
       descending,
-      rowsNumber: response.data.count,
+      rowsNumber: response.data.count || 0,
     }
-  } catch {
-    notifyError('Error al cargar rendición')
+  } catch (error) {
+    console.error('Error cargando rendición:', error)
+    notifyError('Error al cargar rendición de ventas')
+    reservas.value = []
   } finally {
     loading.value = false
   }
 }
 
 const onRequest = (props) => loadRendicion(props)
-
-const exportPdf = async () => {
-  exporting.value = true
-  try {
-    const params = {}
-    if (filters.value.fecha.from && filters.value.fecha.to) {
-      params.fecha__gte = filters.value.fecha.from
-      params.fecha__lte = filters.value.fecha.to
-    }
-    if (filters.value.estado !== null) {
-      params.estado = filters.value.estado
-    }
-
-    const response = await api.get('reservas/rendicion-pdf/', { params, responseType: 'blob' })
-    const url = window.URL.createObjectURL(new Blob([response.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `rendicion_ventas_${new Date().toISOString().split('T')[0]}.pdf`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-  } catch {
-    notifyError('Error al exportar PDF')
-  } finally {
-    exporting.value = false
-  }
-}
-
-onMounted(() => {
-  const today = new Date().toISOString().split('T')[0]
-  const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-    .toISOString()
-    .split('T')[0]
-  filters.value.fecha = { from: firstDay, to: today }
-  loadRendicion()
-})
 </script>

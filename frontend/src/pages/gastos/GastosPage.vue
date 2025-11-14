@@ -5,19 +5,19 @@
     <q-card class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-5">
             <date-range-picker v-model="filters.fecha" label="Rango de fechas" />
           </div>
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-4" v-if="isAdmin">
             <autocomplete-input
-              v-model="filters.orden"
-              label="Orden de Servicio"
-              endpoint="reservas/ordenes-servicio"
-              option-label="id"
-              :option-display="(o) => `#${o.id} - ${o.fecha}`"
+              v-model="filters.usuario"
+              label="Usuario"
+              endpoint="base/usuarios/"
+              option-label="username"
+              clearable
             />
           </div>
-          <div class="col-12 col-md-2 flex items-center">
+          <div class="col-12 col-md-3 flex items-center" :class="{ 'col-md-7': !isAdmin }">
             <q-btn
               color="primary"
               label="Buscar"
@@ -72,18 +72,9 @@
           <q-form @submit="saveGasto" class="q-gutter-md">
             <date-picker v-model="form.fecha" label="Fecha" required />
 
-            <autocomplete-input
-              v-model="form.orden_servicio"
-              label="Orden de Servicio"
-              endpoint="reservas/ordenes-servicio"
-              option-label="id"
-              :option-display="(o) => `#${o.id} - ${o.fecha} - Guía: ${o.guia?.nombre_completo}`"
-              required
-            />
-
             <q-input
-              v-model="form.concepto"
-              label="Concepto"
+              v-model="form.descripcion"
+              label="Descripción"
               filled
               :rules="[(val) => !!val || 'Requerido']"
               required
@@ -98,14 +89,6 @@
               prefix="S/"
               :rules="[(val) => val > 0 || 'Debe ser mayor a 0']"
               required
-            />
-
-            <q-input
-              v-model="form.observaciones"
-              label="Observaciones"
-              type="textarea"
-              filled
-              rows="3"
             />
 
             <div class="row q-gutter-sm justify-end">
@@ -123,6 +106,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
+import { useAuth } from 'src/composables/useAuth'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 import DatePicker from 'src/components/DatePicker.vue'
@@ -131,19 +115,18 @@ import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 
 const api = useApi()
 const { notifySuccess, notifyError, confirm } = useNotify()
+const { isAdmin } = useAuth()
 
 const gastos = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
 const saving = ref(false)
 const isEditing = ref(false)
-const filters = ref({ fecha: { from: null, to: null }, orden: null })
+const filters = ref({ fecha: { desde: null, hasta: null }, usuario: null })
 const form = ref({
   fecha: new Date().toISOString().split('T')[0],
-  orden_servicio: null,
-  concepto: '',
+  descripcion: '',
   monto: 0,
-  observaciones: '',
 })
 
 const columns = [
@@ -160,14 +143,20 @@ const columns = [
     },
   },
   {
-    name: 'orden',
-    label: 'Orden Servicio',
-    field: (row) => `#${row.orden_servicio?.id}`,
+    name: 'descripcion',
+    label: 'Descripción',
+    field: 'descripcion',
     align: 'left',
+    sortable: true,
   },
-  { name: 'concepto', label: 'Concepto', field: 'concepto', align: 'left' },
   { name: 'monto', label: 'Monto', field: 'monto', align: 'right', sortable: true },
-  { name: 'observaciones', label: 'Observaciones', field: 'observaciones', align: 'left' },
+  {
+    name: 'creado_por',
+    label: 'Usuario',
+    field: 'creado_por_nombre',
+    align: 'left',
+    sortable: true,
+  },
   { name: 'actions', label: 'Acciones', field: 'actions', align: 'center' },
 ]
 
@@ -193,12 +182,12 @@ const loadGastos = async (props) => {
       ordering: (descending ? '-' : '') + sortBy,
     }
 
-    if (filters.value.fecha.from && filters.value.fecha.to) {
-      params.fecha__gte = filters.value.fecha.from
-      params.fecha__lte = filters.value.fecha.to
+    if (filters.value.fecha.desde && filters.value.fecha.hasta) {
+      params.fecha__gte = filters.value.fecha.desde
+      params.fecha__lte = filters.value.fecha.hasta
     }
-    if (filters.value.orden) {
-      params.orden_servicio = filters.value.orden?.id || filters.value.orden
+    if (filters.value.usuario) {
+      params.creado_por = filters.value.usuario?.id || filters.value.usuario
     }
 
     const response = await api.get('reservas/gastos/', { params })
@@ -223,14 +212,12 @@ const onRequest = (props) => loadGastos(props)
 const openDialog = (gasto = null) => {
   isEditing.value = !!gasto
   if (gasto) {
-    form.value = { ...gasto, orden_servicio: gasto.orden_servicio }
+    form.value = { ...gasto }
   } else {
     form.value = {
       fecha: new Date().toISOString().split('T')[0],
-      orden_servicio: null,
-      concepto: '',
+      descripcion: '',
       monto: 0,
-      observaciones: '',
     }
   }
   showDialog.value = true
@@ -239,16 +226,11 @@ const openDialog = (gasto = null) => {
 const saveGasto = async () => {
   saving.value = true
   try {
-    const payload = {
-      ...form.value,
-      orden_servicio: form.value.orden_servicio?.id || form.value.orden_servicio,
-    }
-
     if (isEditing.value) {
-      await api.put(`reservas/gastos/${form.value.id}/`, payload)
+      await api.put(`reservas/gastos/${form.value.id}/`, form.value)
       notifySuccess('Gasto actualizado')
     } else {
-      await api.post('reservas/gastos/', payload)
+      await api.post('reservas/gastos/', form.value)
       notifySuccess('Gasto registrado')
     }
     showDialog.value = false
@@ -259,7 +241,7 @@ const saveGasto = async () => {
 }
 
 const deleteGasto = async (gasto) => {
-  if (!(await confirm(`¿Eliminar gasto "${gasto.concepto}"?`))) return
+  if (!(await confirm(`¿Eliminar gasto "${gasto.descripcion}"?`))) return
   try {
     await api.delete(`reservas/gastos/${gasto.id}/`)
     notifySuccess('Gasto eliminado')
@@ -271,7 +253,7 @@ const deleteGasto = async (gasto) => {
 
 onMounted(() => {
   const today = new Date().toISOString().split('T')[0]
-  filters.value.fecha = { from: today, to: today }
+  filters.value.fecha = { desde: today, hasta: today }
   loadGastos()
 })
 </script>

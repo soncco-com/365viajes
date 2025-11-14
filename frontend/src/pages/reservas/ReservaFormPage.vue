@@ -97,204 +97,160 @@
           </q-card>
 
           <div class="q-mt-md">
-            <q-btn label="Siguiente" color="primary" @click="step = 2" />
+            <q-btn label="Siguiente" color="primary" @click="validarYAvanzar(2)" />
           </div>
         </q-step>
 
         <q-step :name="2" title="Servicios" icon="tour" :done="step > 2">
           <q-card flat bordered>
             <q-card-section>
-              <div class="q-mb-md">
+              <div class="row justify-between items-center q-mb-md">
+                <div class="text-subtitle2 text-grey-8">
+                  {{ reserva.detalles.length }} servicio(s)
+                </div>
                 <q-btn
                   label="Agregar Servicio"
                   color="primary"
                   icon="add"
                   @click="addServicio"
                   size="sm"
+                  unelevated
                 />
               </div>
 
-              <q-table
-                :rows="reserva.detalles"
-                :columns="serviciosColumns"
-                row-key="id"
-                flat
-                bordered
-                dense
-                :grid="$q.screen.lt.md"
-              >
-                <template v-slot:body-cell-servicio="props">
-                  <q-td :props="props">
-                    <autocomplete-input
-                      v-model="props.row.servicio"
-                      endpoint="base/servicios"
-                      option-label="nombre"
-                      label="Servicio"
-                      dense
-                      hide-bottom-space
-                      @update:model-value="calcularSubtotalServicio(props.row)"
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-lugar="props">
-                  <q-td :props="props">
-                    <autocomplete-input
-                      v-model="props.row.recoger_en"
-                      endpoint="base/lugares"
-                      option-label="nombre"
-                      label="Hotel"
-                      dense
-                      hide-bottom-space
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-cuando="props">
-                  <q-td :props="props">
-                    <q-input
-                      v-model="props.row.cuando"
-                      type="time"
-                      dense
-                      outlined
-                      hide-bottom-space
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-idioma="props">
-                  <q-td :props="props">
-                    <q-select
-                      v-model="props.row.idioma"
-                      :options="idiomaOptions"
-                      dense
-                      outlined
-                      hide-bottom-space
-                      map-options
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-numero_pax="props">
-                  <q-td :props="props">
-                    <div class="text-center text-weight-medium">
-                      {{ props.row.numero_pax }}
-                    </div>
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-subtotal="props">
-                  <q-td :props="props">
-                    <div class="text-weight-medium">
-                      S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}
-                    </div>
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-acciones="props">
-                  <q-td :props="props">
-                    <q-btn
-                      flat
-                      round
-                      dense
-                      color="negative"
-                      icon="delete"
-                      @click="removeServicio(props.rowIndex)"
-                      size="sm"
-                    />
-                  </q-td>
-                </template>
-
-                <!-- Vista GRID para móviles -->
-                <template v-slot:item="props">
-                  <div class="q-pa-xs col-12">
-                    <q-card flat bordered>
-                      <q-card-section class="q-pb-none">
-                        <div class="text-weight-bold text-primary q-mb-md">
-                          Servicio #{{ props.rowIndex + 1 }}
+              <!-- Grid de Servicios -->
+              <div v-if="reserva.detalles.length > 0" class="row q-col-gutter-md">
+                <div
+                  v-for="(detalle, index) in reserva.detalles"
+                  :key="detalle.id"
+                  class="col-12 col-md-6"
+                >
+                  <q-card flat bordered>
+                    <q-card-section class="bg-primary text-white q-py-sm">
+                      <div class="row items-center justify-between">
+                        <div class="text-subtitle2">
+                          <q-icon name="tour" class="q-mr-xs" />
+                          Servicio #{{ index + 1 }}
                         </div>
-                      </q-card-section>
-
-                      <q-card-section class="q-pt-sm">
-                        <div class="q-gutter-md">
-                          <autocomplete-input
-                            v-model="props.row.servicio"
-                            endpoint="base/servicios"
-                            option-label="nombre"
-                            label="Servicio *"
-                            dense
-                            @update:model-value="calcularSubtotalServicio(props.row)"
-                          />
-
-                          <autocomplete-input
-                            v-model="props.row.recoger_en"
-                            endpoint="base/lugares"
-                            option-label="nombre"
-                            label="Lugar"
-                            dense
-                          />
-
-                          <div class="row q-col-gutter-md">
-                            <div class="col-6">
-                              <q-input
-                                v-model="props.row.cuando"
-                                type="time"
-                                label="Hora"
-                                dense
-                                outlined
-                              />
-                            </div>
-                            <div class="col-6">
-                              <q-select
-                                v-model="props.row.idioma"
-                                :options="idiomaOptions"
-                                label="Idioma"
-                                dense
-                                outlined
-                                map-options
-                              />
-                            </div>
-                          </div>
-
-                          <div class="row q-col-gutter-md items-center">
-                            <div class="col-6">
-                              <q-input
-                                v-model.number="props.row.numero_pax"
-                                type="number"
-                                label="PAX"
-                                dense
-                                outlined
-                                min="1"
-                                @update:model-value="calcularSubtotalServicio(props.row)"
-                              />
-                            </div>
-                            <div class="col-6">
-                              <div class="text-center">
-                                <div class="text-caption text-grey-7">Subtotal</div>
-                                <div class="text-weight-bold text-h6 text-primary">
-                                  S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </q-card-section>
-
-                      <q-separator />
-
-                      <q-card-actions align="right">
                         <q-btn
                           flat
-                          color="negative"
+                          dense
+                          round
                           icon="delete"
-                          label="Eliminar"
-                          @click="removeServicio(props.rowIndex)"
-                        />
-                      </q-card-actions>
-                    </q-card>
+                          color="white"
+                          @click="removeServicio(index)"
+                          size="sm"
+                        >
+                          <q-tooltip>Eliminar servicio</q-tooltip>
+                        </q-btn>
+                      </div>
+                    </q-card-section>
+
+                    <q-card-section>
+                      <autocomplete-input
+                        v-model="detalle.servicio"
+                        endpoint="base/servicios"
+                        option-label="nombre"
+                        label="Servicio *"
+                        dense
+                        class="q-mb-md"
+                        @update:model-value="onServicioChange(detalle)"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="tour" />
+                        </template>
+                      </autocomplete-input>
+
+                      <q-input
+                        v-if="detalle.servicio?.mostrar_destinos"
+                        v-model="detalle.destino"
+                        label="Destino final"
+                        dense
+                        outlined
+                        placeholder="Ej: Hotel, Aeropuerto"
+                        hint="Especifica el destino final del servicio"
+                        class="q-mb-md"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="place" color="primary" />
+                        </template>
+                      </q-input>
+
+                      <autocomplete-input
+                        v-model="detalle.recoger_en"
+                        endpoint="base/lugares"
+                        option-label="nombre"
+                        label="Hotel/Lugar de recojo"
+                        dense
+                        class="q-mb-md"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="hotel" />
+                        </template>
+                      </autocomplete-input>
+
+                      <q-select
+                        v-model="detalle.idioma"
+                        :options="idiomaOptions"
+                        label="Idioma"
+                        dense
+                        outlined
+                        map-options
+                        class="q-mb-md"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="language" />
+                        </template>
+                      </q-select>
+
+                      <q-input
+                        v-model.number="detalle.numero_pax"
+                        type="number"
+                        label="Número de PAX"
+                        dense
+                        outlined
+                        min="1"
+                        class="q-mb-sm"
+                        @update:model-value="calcularSubtotalServicio(detalle)"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="people" />
+                        </template>
+                      </q-input>
+
+                      <div
+                        v-if="detalle.observacion_precio"
+                        class="text-caption text-grey-7 q-mb-md"
+                      >
+                        <q-icon name="info" size="xs" />
+                        {{ detalle.observacion_precio }}
+                      </div>
+                    </q-card-section>
+
+                    <q-separator />
+
+                    <q-card-section class="bg-grey-2">
+                      <div class="row items-center justify-between">
+                        <div class="text-body2 text-grey-8">Subtotal del servicio:</div>
+                        <div class="text-h6 text-weight-bold text-positive">
+                          S/ {{ parseFloat(detalle.total || 0).toFixed(2) }}
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
+              </div>
+
+              <!-- Estado vacío -->
+              <q-card v-else flat bordered class="bg-grey-1">
+                <q-card-section class="text-center q-py-lg">
+                  <q-icon name="add_circle_outline" size="48px" color="grey-5" />
+                  <div class="text-subtitle2 text-grey-7 q-mt-sm">No hay servicios agregados</div>
+                  <div class="text-caption text-grey-6">
+                    Haz clic en "Agregar Servicio" para comenzar
                   </div>
-                </template>
-              </q-table>
+                </q-card-section>
+              </q-card>
 
               <div class="q-mt-md text-right">
                 <div class="text-h6">Subtotal Servicios: S/ {{ subtotalServicios.toFixed(2) }}</div>
@@ -304,183 +260,122 @@
 
           <div class="q-mt-md q-gutter-sm">
             <q-btn label="Anterior" color="primary" flat @click="step = 1" />
-            <q-btn label="Siguiente" color="primary" @click="step = 3" />
+            <q-btn label="Siguiente" color="primary" @click="validarYAvanzar(3)" />
           </div>
         </q-step>
 
         <q-step :name="3" title="Adicionales" icon="add_circle" :done="step > 3">
           <q-card flat bordered>
             <q-card-section>
-              <div class="q-mb-md">
+              <div class="row justify-between items-center q-mb-md">
+                <div class="text-subtitle2 text-grey-8">
+                  {{ reserva.adicionales.length }} adicional(es)
+                </div>
                 <q-btn
                   label="Agregar Adicional"
                   color="primary"
                   icon="add"
                   @click="addAdicional"
                   size="sm"
+                  unelevated
                 />
               </div>
 
-              <q-table
-                :rows="reserva.adicionales"
-                :columns="adicionalesColumns"
-                row-key="id"
-                flat
-                bordered
-                dense
-                :grid="$q.screen.lt.md"
-              >
-                <template v-slot:body-cell-adicional="props">
-                  <q-td :props="props">
-                    <autocomplete-input
-                      v-model="props.row.adicional"
-                      endpoint="base/adicionales"
-                      option-label="nombre"
-                      dense
-                      hide-bottom-space
-                      @update:model-value="calcularSubtotalAdicional(props.row)"
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-cuando="props">
-                  <q-td :props="props">
-                    <q-input
-                      v-model="props.row.cuando"
-                      type="time"
-                      dense
-                      outlined
-                      hide-bottom-space
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-cantidad="props">
-                  <q-td :props="props">
-                    <q-input
-                      v-model.number="props.row.cantidad"
-                      type="number"
-                      dense
-                      outlined
-                      hide-bottom-space
-                      min="1"
-                      @update:model-value="calcularSubtotalAdicional(props.row)"
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-contable="props">
-                  <q-td :props="props">
-                    <q-checkbox
-                      v-model="props.row.contable"
-                      dense
-                      @update:model-value="calcularTotal"
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-subtotal="props">
-                  <q-td :props="props">
-                    <div class="text-weight-medium">
-                      S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}
-                    </div>
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-acciones="props">
-                  <q-td :props="props">
-                    <q-btn
-                      flat
-                      round
-                      dense
-                      color="negative"
-                      icon="delete"
-                      @click="removeAdicional(props.rowIndex)"
-                      size="sm"
-                    />
-                  </q-td>
-                </template>
-
-                <!-- Vista GRID para móviles -->
-                <template v-slot:item="props">
-                  <div class="q-pa-xs col-12">
-                    <q-card flat bordered>
-                      <q-card-section class="q-pb-none">
-                        <div class="text-weight-bold text-primary q-mb-md">
-                          Adicional #{{ props.rowIndex + 1 }}
+              <!-- Grid de Adicionales -->
+              <div v-if="reserva.adicionales.length > 0" class="row q-col-gutter-md">
+                <div
+                  v-for="(adicional, index) in reserva.adicionales"
+                  :key="adicional.id"
+                  class="col-12 col-md-6"
+                >
+                  <q-card flat bordered>
+                    <q-card-section class="bg-orange-8 text-white q-py-sm">
+                      <div class="row items-center justify-between">
+                        <div class="text-subtitle2">
+                          <q-icon name="add_circle" class="q-mr-xs" />
+                          Adicional #{{ index + 1 }}
                         </div>
-                      </q-card-section>
-
-                      <q-card-section class="q-pt-sm">
-                        <div class="q-gutter-md">
-                          <autocomplete-input
-                            v-model="props.row.adicional"
-                            endpoint="base/adicionales"
-                            option-label="nombre"
-                            label="Adicional *"
-                            dense
-                            @update:model-value="calcularSubtotalAdicional(props.row)"
-                          />
-
-                          <div class="row q-col-gutter-md">
-                            <div class="col-6">
-                              <q-input
-                                v-model="props.row.cuando"
-                                type="time"
-                                label="Hora"
-                                dense
-                                outlined
-                              />
-                            </div>
-                            <div class="col-6">
-                              <q-input
-                                v-model.number="props.row.cantidad"
-                                type="number"
-                                label="Cantidad"
-                                dense
-                                outlined
-                                min="1"
-                                @update:model-value="calcularSubtotalAdicional(props.row)"
-                              />
-                            </div>
-                          </div>
-
-                          <div class="row q-col-gutter-md items-center">
-                            <div class="col-6">
-                              <q-checkbox
-                                v-model="props.row.contable"
-                                label="Contable"
-                                dense
-                                @update:model-value="calcularTotal"
-                              />
-                            </div>
-                            <div class="col-6">
-                              <div class="text-center">
-                                <div class="text-caption text-grey-7">Subtotal</div>
-                                <div class="text-weight-bold text-h6 text-primary">
-                                  S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </q-card-section>
-
-                      <q-separator />
-
-                      <q-card-actions align="right">
                         <q-btn
                           flat
-                          color="negative"
+                          dense
+                          round
                           icon="delete"
-                          label="Eliminar"
-                          @click="removeAdicional(props.rowIndex)"
+                          color="white"
+                          @click="removeAdicional(index)"
+                          size="sm"
+                        >
+                          <q-tooltip>Eliminar adicional</q-tooltip>
+                        </q-btn>
+                      </div>
+                    </q-card-section>
+
+                    <q-card-section>
+                      <autocomplete-input
+                        v-model="adicional.adicional"
+                        endpoint="base/adicionales"
+                        option-label="nombre"
+                        label="Adicional *"
+                        dense
+                        class="q-mb-md"
+                        @update:model-value="calcularSubtotalAdicional(adicional)"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="add_box" />
+                        </template>
+                      </autocomplete-input>
+
+                      <q-input
+                        v-model.number="adicional.cantidad"
+                        type="number"
+                        label="Cantidad"
+                        dense
+                        outlined
+                        min="1"
+                        class="q-mb-md"
+                        @update:model-value="calcularSubtotalAdicional(adicional)"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="tag" />
+                        </template>
+                      </q-input>
+
+                      <div>
+                        <q-checkbox
+                          v-model="adicional.contable"
+                          label="Contable"
+                          color="primary"
+                          @update:model-value="calcularTotal"
                         />
-                      </q-card-actions>
-                    </q-card>
+                        <div class="text-caption text-grey-6">
+                          {{ adicional.contable ? 'Se suma al total' : 'No se suma al total' }}
+                        </div>
+                      </div>
+                    </q-card-section>
+
+                    <q-separator />
+
+                    <q-card-section class="bg-grey-2">
+                      <div class="row items-center justify-between">
+                        <div class="text-body2 text-grey-8">Subtotal del adicional:</div>
+                        <div class="text-h6 text-weight-bold text-positive">
+                          S/ {{ parseFloat(adicional.total || 0).toFixed(2) }}
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
+              </div>
+
+              <!-- Estado vacío -->
+              <q-card v-else flat bordered class="bg-grey-1">
+                <q-card-section class="text-center q-py-lg">
+                  <q-icon name="add_circle_outline" size="48px" color="grey-5" />
+                  <div class="text-subtitle2 text-grey-7 q-mt-sm">No hay adicionales agregados</div>
+                  <div class="text-caption text-grey-6">
+                    Haz clic en "Agregar Adicional" para comenzar
                   </div>
-                </template>
-              </q-table>
+                </q-card-section>
+              </q-card>
 
               <div class="q-mt-md text-right">
                 <div class="text-body1">
@@ -495,7 +390,7 @@
 
           <div class="q-mt-md q-gutter-sm">
             <q-btn label="Anterior" color="primary" flat @click="step = 2" />
-            <q-btn label="Siguiente" color="primary" @click="step = 4" />
+            <q-btn label="Siguiente" color="primary" @click="validarYAvanzar(4)" />
           </div>
         </q-step>
 
@@ -556,8 +451,19 @@
                           <q-item-section>
                             <q-item-label>{{ detalle.servicio?.nombre || 'N/A' }}</q-item-label>
                             <q-item-label caption>
-                              {{ detalle.recoger_en?.nombre || 'N/A' }} - {{ detalle.cuando }} -
+                              {{ detalle.recoger_en?.nombre || 'N/A' }} -
                               {{ getIdiomaLabel(detalle.idioma) }} - {{ detalle.numero_pax }} pax
+                              <span v-if="detalle.destino" class="text-primary">
+                                → Destino: {{ detalle.destino }}
+                              </span>
+                            </q-item-label>
+                            <q-item-label
+                              caption
+                              v-if="detalle.observacion_precio"
+                              class="text-grey-7"
+                            >
+                              <q-icon name="info" size="xs" />
+                              {{ detalle.observacion_precio }}
                             </q-item-label>
                           </q-item-section>
                           <q-item-section side>
@@ -582,8 +488,7 @@
                           <q-item-section>
                             <q-item-label>{{ adicional.adicional?.nombre || 'N/A' }}</q-item-label>
                             <q-item-label caption>
-                              {{ adicional.cuando }} - {{ adicional.cantidad }} x S/
-                              {{ adicional.adicional?.precio || 0 }}
+                              {{ adicional.cantidad }} x S/ {{ adicional.adicional?.precio || 0 }}
                               <q-badge
                                 v-if="!adicional.contable"
                                 color="negative"
@@ -724,24 +629,6 @@ const idiomaOptions = [
   { value: 'xx', label: 'Bilingüe' },
 ]
 
-const serviciosColumns = [
-  { name: 'servicio', label: 'Servicio', field: 'servicio', align: 'left' },
-  { name: 'lugar', label: 'Lugar', field: 'recoger_en', align: 'left' },
-  { name: 'idioma', label: 'Idioma', field: 'idioma', align: 'center' },
-  { name: 'numero_pax', label: 'PAX', field: 'numero_pax', align: 'center' },
-  { name: 'subtotal', label: 'Subtotal', field: 'total', align: 'right' },
-  { name: 'acciones', label: 'Acciones', align: 'center' },
-]
-
-const adicionalesColumns = [
-  { name: 'adicional', label: 'Adicional', field: 'adicional', align: 'left' },
-  { name: 'cuando', label: 'Hora', field: 'cuando', align: 'center' },
-  { name: 'cantidad', label: 'Cantidad', field: 'cantidad', align: 'center' },
-  { name: 'contable', label: 'Contable', field: 'contable', align: 'center' },
-  { name: 'subtotal', label: 'Subtotal', field: 'total', align: 'right' },
-  { name: 'acciones', label: 'Acciones', align: 'center' },
-]
-
 const subtotalServicios = computed(() => {
   return reserva.value.detalles.reduce((sum, detalle) => sum + (parseFloat(detalle.total) || 0), 0)
 })
@@ -767,9 +654,69 @@ function calcularTotal() {
   reserva.value.total = subtotalServicios.value + subtotalAdicionales.value - totalNoContable.value
 }
 
+async function onServicioChange(detalle) {
+  // Limpiar destino si el servicio no requiere destinos
+  if (!detalle.servicio?.mostrar_destinos) {
+    detalle.destino = null
+  }
+
+  // Buscar precio especial si hay cliente y servicio seleccionados
+  if (detalle.servicio?.id && reserva.value.cliente?.id) {
+    try {
+      const response = await api.get('base/servicio-precios-especiales/', {
+        params: {
+          servicio: detalle.servicio.id,
+          cliente: reserva.value.cliente.id,
+          activo: true,
+        },
+      })
+
+      const preciosEspeciales = response.data.results || []
+      const today = new Date().toISOString().split('T')[0]
+
+      // Filtrar por vigencia
+      const precioVigente = preciosEspeciales.find((precio) => {
+        const desde = precio.fecha_desde
+        const hasta = precio.fecha_hasta
+
+        if (!desde) return false
+        if (desde > today) return false
+        if (hasta && hasta < today) return false
+
+        return true
+      })
+
+      if (precioVigente) {
+        const precioNormal = parseFloat(detalle.servicio.precio)
+        const precioEspecial = parseFloat(precioVigente.precio)
+        const ahorro = precioNormal - precioEspecial
+        const porcentaje = ((ahorro / precioNormal) * 100).toFixed(1)
+        
+        detalle.precio_aplicado = precioEspecial
+        detalle.observacion_precio = `Precio especial para ${reserva.value.cliente.nombre} (S/ ${precioNormal.toFixed(2)} → S/ ${precioEspecial.toFixed(2)}, ahorro: ${porcentaje}%)${
+          precioVigente.observaciones ? ' - ' + precioVigente.observaciones : ''
+        }`
+      } else {
+        detalle.precio_aplicado = parseFloat(detalle.servicio.precio)
+        detalle.observacion_precio = `Precio estándar: S/ ${detalle.servicio.precio} por PAX`
+      }
+    } catch (error) {
+      console.error('Error al consultar precios especiales:', error)
+      detalle.precio_aplicado = parseFloat(detalle.servicio.precio)
+      detalle.observacion_precio = `Precio estándar: S/ ${detalle.servicio.precio} por PAX`
+    }
+  } else if (detalle.servicio?.precio) {
+    detalle.precio_aplicado = parseFloat(detalle.servicio.precio)
+    detalle.observacion_precio = `Precio estándar: S/ ${detalle.servicio.precio} por PAX`
+  }
+
+  calcularSubtotalServicio(detalle)
+}
+
 function calcularSubtotalServicio(detalle) {
-  if (detalle.servicio?.precio && detalle.numero_pax) {
-    detalle.total = parseFloat(detalle.servicio.precio) * parseInt(detalle.numero_pax)
+  const precio = detalle.precio_aplicado || detalle.servicio?.precio || 0
+  if (precio && detalle.numero_pax) {
+    detalle.total = parseFloat(precio) * parseInt(detalle.numero_pax)
   } else {
     detalle.total = 0
   }
@@ -787,10 +734,12 @@ function addServicio() {
   reserva.value.detalles.push({
     id: Date.now(),
     servicio: null,
+    destino: null,
     recoger_en: null,
-    cuando: '',
     idioma: { value: 'es', label: 'Español' },
     numero_pax: 1,
+    precio_aplicado: null,
+    observacion_precio: '',
     total: 0,
     seleccionado: false,
   })
@@ -805,7 +754,6 @@ function addAdicional() {
   reserva.value.adicionales.push({
     id: Date.now(),
     adicional: null,
-    cuando: '',
     cantidad: 1,
     contable: true,
     total: 0,
@@ -846,11 +794,14 @@ async function loadReserva() {
       return {
         ...detalle,
         servicio: servicioRes?.data || null,
+        destino: detalle.destino || null,
         recoger_en: lugarRes?.data || null,
         idioma: idiomaOptions.find((opt) => opt.value === detalle.idioma) || {
           value: 'es',
           label: 'Español',
         },
+        precio_aplicado: detalle.precio_aplicado || null,
+        observacion_precio: detalle.observacion_precio || '',
       }
     })
 
@@ -905,10 +856,13 @@ async function saveReserva() {
         .map((detalle) => ({
           ...(detalle.id && { id: parseInt(detalle.id) }), // Incluir ID si existe (para edición)
           servicio: parseInt(detalle.servicio.id),
+          destino: detalle.destino || null,
           recoger_en: parseInt(detalle.recoger_en.id),
           cuando: reserva.value.fecha,
           idioma: detalle.idioma?.value || detalle.idioma || 'es',
           numero_pax: parseInt(detalle.numero_pax) || 1,
+          precio_aplicado: detalle.precio_aplicado ? parseFloat(detalle.precio_aplicado) : null,
+          observacion_precio: detalle.observacion_precio || '',
           total: parseFloat(detalle.total) || 0,
           seleccionado: detalle.seleccionado || false,
         })),
@@ -960,6 +914,105 @@ async function createCliente() {
     notifyError('Error al crear la agencia')
     console.error(error)
   }
+}
+
+function validarYAvanzar(siguientePaso) {
+  let valido = true
+  let mensaje = ''
+
+  if (siguientePaso === 2) {
+    // Validar paso 1: Datos principales
+    if (!reserva.value.fecha) {
+      mensaje = 'La fecha es obligatoria'
+      valido = false
+    } else if (!reserva.value.cliente) {
+      mensaje = 'La agencia es obligatoria'
+      valido = false
+    } else if (!reserva.value.pasajero || reserva.value.pasajero.trim() === '') {
+      mensaje = 'El nombre del pasajero es obligatorio'
+      valido = false
+    } else if (!reserva.value.estado) {
+      mensaje = 'El estado es obligatorio'
+      valido = false
+    }
+  } else if (siguientePaso === 3) {
+    // Validar paso 2: Servicios
+    if (reserva.value.detalles.length > 0) {
+      const errores = validarServicios()
+      if (errores.length > 0) {
+        mensaje = errores.join('\n')
+        valido = false
+      }
+    }
+    // Si no hay servicios, se puede avanzar
+  } else if (siguientePaso === 4) {
+    // Validar paso 3: Adicionales
+    if (reserva.value.adicionales.length > 0) {
+      const errores = validarAdicionales()
+      if (errores.length > 0) {
+        mensaje = errores.join('\n')
+        valido = false
+      }
+    }
+    // Si no hay adicionales, se puede avanzar
+  }
+
+  if (valido) {
+    step.value = siguientePaso
+  } else {
+    $q.notify({
+      type: 'negative',
+      message: mensaje,
+      position: 'top',
+      timeout: 3000,
+      multiLine: mensaje.includes('\n'),
+    })
+  }
+}
+
+function validarServicios() {
+  const errores = []
+
+  reserva.value.detalles.forEach((detalle, index) => {
+    const numero = index + 1
+
+    if (!detalle.servicio) {
+      errores.push(`Servicio #${numero}: Debe seleccionar un servicio`)
+    }
+
+    if (!detalle.recoger_en) {
+      errores.push(`Servicio #${numero}: Debe seleccionar un lugar de recojo`)
+    }
+
+    if (!detalle.numero_pax || detalle.numero_pax < 1) {
+      errores.push(`Servicio #${numero}: El número de PAX debe ser mayor a 0`)
+    }
+
+    // Validar destino solo si el servicio lo requiere
+    if (detalle.servicio?.mostrar_destinos && (!detalle.destino || detalle.destino.trim() === '')) {
+      errores.push(`Servicio #${numero}: Debe especificar el destino final`)
+    }
+  })
+
+  return errores
+}
+
+function validarAdicionales() {
+  const errores = []
+
+  reserva.value.adicionales.forEach((adicional, index) => {
+    const numero = index + 1
+
+    if (!adicional.adicional) {
+      errores.push(`Adicional #${numero}: Debe seleccionar un adicional`)
+    }
+
+    if (!adicional.cantidad || adicional.cantidad < 1) {
+      errores.push(`Adicional #${numero}: La cantidad debe ser mayor a 0`)
+    }
+  })
+
+  return errores
 }
 
 function goBack() {

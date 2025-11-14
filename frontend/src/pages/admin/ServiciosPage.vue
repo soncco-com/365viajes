@@ -114,7 +114,7 @@
         </q-card-section>
 
         <q-card-section class="q-pa-md">
-          <q-form @submit="saveServicio" class="q-gutter-md">
+          <q-form @submit="saveServicio">
             <div class="row q-col-gutter-md">
               <div class="col-12 col-md-8">
                 <q-input
