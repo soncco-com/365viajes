@@ -15,7 +15,7 @@ export function useAuth() {
   const isAuthenticated = computed(() => !!accessToken.value)
   const currentUser = computed(() => user.value)
   const isAdmin = computed(() => {
-    return user.value?.grupos?.includes('Administrador') || false
+    return user.value?.grupos?.some((grupo) => grupo.name === 'Administrador') || false
   })
 
   /**

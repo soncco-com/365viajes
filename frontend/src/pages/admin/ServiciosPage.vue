@@ -11,7 +11,9 @@
               v-model="filters.search"
               label="Buscar"
               placeholder="Buscar por nombre"
-              filled
+              fill-input
+              outlined
+              dense
               clearable
               @keyup.enter="loadServicios"
             >
@@ -38,10 +40,12 @@
               emit-value
               map-options
               clearable
-              filled
+              fill-input
+              outlined
+              dense
             />
           </div>
-          <div class="col-12 col-md-3 flex items-end">
+          <div class="col-12 col-md-3">
             <q-btn
               color="primary"
               icon="search"
@@ -61,15 +65,27 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      create-button
+      create-label="Nuevo Servicio"
+      @create="showFormDialog = true"
+      no-data-label="No hay servicios registrados"
       class="q-mt-md"
     >
       <template v-slot:top-right>
-        <q-btn color="primary" icon="add" label="Nuevo Servicio" @click="openDialog()" />
+        <q-btn
+          color="primary"
+          icon="add"
+          :label="$q.screen.gt.xs ? 'Nuevo Servicio' : ''"
+          @click="openDialog()"
+          :class="$q.screen.xs ? 'full-width' : ''"
+        />
       </template>
 
       <template v-slot:body-cell-precio="props">
         <q-td :props="props">
-          <span class="text-weight-bold">S/ {{ parseFloat(props.row.precio).toFixed(2) }}</span>
+          <span class="text-weight-bold"
+            >S/ {{ parseFloat(props.row.precio || 0).toFixed(2) }}</span
+          >
         </q-td>
       </template>
 
@@ -86,71 +102,72 @@
           <q-btn flat dense round icon="edit" color="primary" @click="openDialog(props.row)">
             <q-tooltip>Editar</q-tooltip>
           </q-btn>
-          <q-btn flat dense round icon="delete" color="negative" @click="deleteServicio(props.row)">
-            <q-tooltip>Eliminar</q-tooltip>
-          </q-btn>
         </q-td>
       </template>
     </data-table>
 
     <!-- Dialog de formulario -->
-    <q-dialog v-model="showDialog" persistent>
-      <q-card style="min-width: 600px">
+    <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs">
+      <q-card :style="$q.screen.gt.xs ? 'min-width: 700px; max-width: 700px' : ''">
         <q-card-section>
           <div class="text-h6">{{ isEditing ? 'Editar Servicio' : 'Nuevo Servicio' }}</div>
         </q-card-section>
 
-        <q-card-section>
+        <q-card-section class="q-pa-md">
           <q-form @submit="saveServicio" class="q-gutter-md">
             <div class="row q-col-gutter-md">
               <div class="col-12 col-md-8">
                 <q-input
                   v-model="form.nombre"
-                  label="Nombre del Servicio"
-                  filled
+                  label="Nombre del Servicio *"
+                  outlined
+                  dense
                   :rules="[(val) => !!val || 'El nombre es requerido']"
-                  required
                 />
               </div>
 
               <div class="col-12 col-md-4">
                 <autocomplete-input
                   v-model="form.formato"
-                  label="Formato"
+                  label="Formato *"
                   endpoint="base/formatos"
                   option-label="nombre"
-                  option-value="id"
                   :rules="[(val) => !!val || 'El formato es requerido']"
-                  required
                 />
               </div>
 
               <div class="col-12 col-md-4">
                 <q-input
                   v-model.number="form.precio"
-                  label="Precio"
+                  label="Precio *"
                   type="number"
-                  filled
+                  outlined
+                  dense
                   prefix="S/"
                   step="0.01"
                   :rules="[(val) => val > 0 || 'El precio debe ser mayor a 0']"
-                  required
                 />
               </div>
 
               <div class="col-12 col-md-4">
                 <q-input
                   v-model.number="form.cantidad_carrito"
-                  label="Cantidad Carrito"
+                  label="Cantidad Carrito *"
                   type="number"
-                  filled
+                  outlined
+                  dense
                   min="1"
                   hint="Capacidad del vehículo"
+                  :rules="[(val) => val > 0 || 'La cantidad debe ser mayor a 0']"
                 />
               </div>
 
               <div class="col-12 col-md-4">
-                <date-picker v-model="form.fecha_precio" label="Fecha de Precio" />
+                <date-picker
+                  v-model="form.fecha_precio"
+                  label="Fecha de Precio *"
+                  :rules="[(val) => !!val || 'La fecha es requerida']"
+                />
               </div>
 
               <div class="col-12">
@@ -158,7 +175,7 @@
               </div>
             </div>
 
-            <div class="row q-gutter-sm justify-end">
+            <div class="row q-gutter-sm justify-end q-mt-md">
               <q-btn label="Cancelar" color="grey" flat @click="showDialog = false" />
               <q-btn
                 label="Guardar"
@@ -179,13 +196,15 @@
 import { ref, onMounted } from 'vue'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
+import { useQuasar } from 'quasar'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import DatePicker from 'src/components/DatePicker.vue'
 
+const $q = useQuasar()
 const api = useApi()
-const { notifySuccess, notifyError, confirm } = useNotify()
+const { notifySuccess, notifyError } = useNotify()
 
 const servicios = ref([])
 const loading = ref(false)
@@ -340,7 +359,7 @@ const saveServicio = async () => {
   try {
     const payload = {
       nombre: form.value.nombre,
-      formato: form.value.formato,
+      formato: form.value.formato?.id || form.value.formato,
       precio: form.value.precio,
       cantidad_carrito: form.value.cantidad_carrito,
       fecha_precio: form.value.fecha_precio,
@@ -362,24 +381,6 @@ const saveServicio = async () => {
     console.error(error)
   } finally {
     saving.value = false
-  }
-}
-
-const deleteServicio = async (servicio) => {
-  const confirmed = await confirm(
-    `¿Está seguro de eliminar el servicio "${servicio.nombre}"?`,
-    'Eliminar Servicio',
-  )
-
-  if (!confirmed) return
-
-  try {
-    await api.delete(`base/servicios/${servicio.id}/`)
-    notifySuccess('Servicio eliminado correctamente')
-    loadServicios()
-  } catch (error) {
-    notifyError('Error al eliminar el servicio')
-    console.error(error)
   }
 }
 

@@ -75,6 +75,7 @@
           v-model:selected="selectedDetalles"
           flat
           bordered
+          no-data-label="No se encontraron servicios para los filtros seleccionados"
         >
           <template v-slot:body-cell-fecha="props">
             <q-td :props="props">
@@ -93,7 +94,7 @@
           <template v-slot:body-cell-subtotal="props">
             <q-td :props="props">
               <span class="text-weight-bold">
-                S/ {{ parseFloat(props.row.subtotal).toFixed(2) }}
+                S/ {{ parseFloat(props.row.subtotal || 0).toFixed(2) }}
               </span>
             </q-td>
           </template>
@@ -138,7 +139,7 @@
               v-model="ordenForm.guia"
               label="Guía"
               endpoint="base/guias"
-              option-label="nombre_completo"
+              option-label="nombre"
               option-value="id"
               :rules="[(val) => !!val || 'El guía es requerido']"
               required
@@ -148,15 +149,7 @@
               v-model="ordenForm.chofer"
               label="Chofer"
               endpoint="base/choferes"
-              option-label="nombre_completo"
-              option-value="id"
-            />
-
-            <autocomplete-input
-              v-model="ordenForm.transporte"
-              label="Transporte"
-              endpoint="base/transportes"
-              option-label="placa"
+              option-label="nombre"
               option-value="id"
             />
 
@@ -217,7 +210,6 @@ const seleccionadoOptions = [
 const ordenForm = ref({
   guia: null,
   chofer: null,
-  transporte: null,
   observaciones: '',
 })
 
@@ -228,6 +220,11 @@ const columns = [
     field: 'reserva_fecha',
     align: 'left',
     sortable: true,
+    format: (val) => {
+      if (!val) return ''
+      const [year, month, day] = val.split('-')
+      return `${day}/${month}/${year}`
+    },
   },
   {
     name: 'servicio_nombre',
@@ -285,11 +282,11 @@ const pagination = ref({
 })
 
 const totalPax = computed(() => {
-  return detalles.value.reduce((sum, d) => sum + d.numero_pax, 0)
+  return detalles.value.reduce((sum, d) => sum + (parseInt(d.numero_pax) || 0), 0)
 })
 
 const totalMonto = computed(() => {
-  return detalles.value.reduce((sum, d) => sum + parseFloat(d.subtotal), 0)
+  return detalles.value.reduce((sum, d) => sum + (parseFloat(d.subtotal) || 0), 0)
 })
 
 const loadDetalles = async (props) => {
@@ -370,7 +367,6 @@ const createOrdenServicio = () => {
   ordenForm.value = {
     guia: null,
     chofer: null,
-    transporte: null,
     observaciones: '',
   }
   showOrdenDialog.value = true
@@ -380,12 +376,22 @@ const saveOrdenServicio = async () => {
   savingOrden.value = true
 
   try {
+    if (selectedDetalles.value.length === 0) {
+      notifyError('Debe seleccionar al menos un detalle')
+      return
+    }
+
+    // Obtener información del primer detalle para inferir datos requeridos
+    const firstDetail = selectedDetalles.value[0]
+
     const payload = {
-      guia: ordenForm.value.guia,
-      chofer: ordenForm.value.chofer,
-      transporte: ordenForm.value.transporte,
+      fecha: firstDetail.reserva_fecha,
+      servicio: firstDetail.servicio_id,
+      idioma: firstDetail.idioma,
+      guia: ordenForm.value.guia?.id || ordenForm.value.guia,
+      chofer: ordenForm.value.chofer?.id || ordenForm.value.chofer,
       observaciones: ordenForm.value.observaciones,
-      detalles: selectedDetalles.value.map((d) => d.id),
+      detalles_ids: selectedDetalles.value.map((d) => d.id),
     }
 
     await api.post('reservas/ordenes-servicio/', payload)

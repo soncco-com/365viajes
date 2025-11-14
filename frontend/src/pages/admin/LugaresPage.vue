@@ -6,7 +6,7 @@
     <q-card flat bordered class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-5">
             <q-input
               v-model="filters.search"
               label="Buscar"
@@ -35,7 +35,7 @@
               dense
             />
           </div>
-          <div class="col-12 col-md-3 flex items-end">
+          <div class="col-12 col-md-4">
             <q-btn
               color="primary"
               icon="search"
@@ -55,10 +55,20 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      create-button
+      create-label="Nuevo Lugar"
+      @create="showFormDialog = true"
+      no-data-label="No hay lugares de recojo registrados"
       class="q-mt-md"
     >
       <template v-slot:top-right>
-        <q-btn color="primary" icon="add" label="Nuevo Hotel" @click="openDialog()" />
+        <q-btn
+          color="primary"
+          icon="add"
+          :label="$q.screen.gt.xs ? 'Nuevo Hotel' : ''"
+          @click="openDialog()"
+          :class="$q.screen.xs ? 'full-width' : ''"
+        />
       </template>
 
       <template v-slot:body-cell-activo="props">
@@ -74,57 +84,32 @@
           <q-btn flat dense round icon="edit" color="primary" @click="openDialog(props.row)">
             <q-tooltip>Editar</q-tooltip>
           </q-btn>
-          <q-btn flat dense round icon="delete" color="negative" @click="deleteLugar(props.row)">
-            <q-tooltip>Eliminar</q-tooltip>
-          </q-btn>
         </q-td>
       </template>
     </data-table>
 
     <!-- Dialog de formulario -->
-    <q-dialog v-model="showDialog" persistent>
-      <q-card style="min-width: 600px">
+    <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs">
+      <q-card :style="$q.screen.gt.xs ? 'min-width: 600px; max-width: 600px' : ''">
         <q-card-section>
           <div class="text-h6">{{ isEditing ? 'Editar Hotel' : 'Nuevo Hotel' }}</div>
         </q-card-section>
 
-        <q-card-section>
+        <q-card-section class="q-pa-md">
           <q-form @submit="saveLugar" class="q-gutter-md">
-            <div class="row q-col-gutter-md">
-              <div class="col-12">
-                <q-input
-                  v-model="form.nombre"
-                  label="Nombre del Hotel"
-                  filled
-                  :rules="[(val) => !!val || 'El nombre es requerido']"
-                  required
-                />
-              </div>
+            <q-input
+              v-model="form.nombre"
+              label="Nombre del Hotel *"
+              outlined
+              dense
+              :rules="[(val) => !!val || 'El nombre es requerido']"
+            />
 
-              <div class="col-12">
-                <q-input
-                  v-model="form.direccion"
-                  label="Dirección"
-                  filled
-                  type="textarea"
-                  rows="2"
-                />
-              </div>
+            <q-input v-model="form.telefonos" label="Teléfonos" outlined dense />
 
-              <div class="col-12 col-md-6">
-                <q-input v-model="form.telefono" label="Teléfono" filled />
-              </div>
+            <q-toggle v-model="form.activo" label="Activo" />
 
-              <div class="col-12 col-md-6">
-                <q-input v-model="form.email" label="Email" filled type="email" />
-              </div>
-
-              <div class="col-12">
-                <q-toggle v-model="form.activo" label="Activo" />
-              </div>
-            </div>
-
-            <div class="row q-gutter-sm justify-end">
+            <div class="row q-gutter-sm justify-end q-mt-md">
               <q-btn label="Cancelar" color="grey" flat @click="showDialog = false" />
               <q-btn
                 label="Guardar"
@@ -145,11 +130,13 @@
 import { ref, onMounted } from 'vue'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
+import { useQuasar } from 'quasar'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 
+const $q = useQuasar()
 const api = useApi()
-const { notifySuccess, notifyError, confirm } = useNotify()
+const { notifySuccess, notifyError } = useNotify()
 
 const lugares = ref([])
 const loading = ref(false)
@@ -169,9 +156,7 @@ const estadoOptions = [
 
 const form = ref({
   nombre: '',
-  direccion: '',
-  telefono: '',
-  email: '',
+  telefonos: '',
   activo: true,
 })
 
@@ -184,15 +169,9 @@ const columns = [
     sortable: true,
   },
   {
-    name: 'direccion',
-    label: 'Dirección',
-    field: 'direccion',
-    align: 'left',
-  },
-  {
-    name: 'telefono',
-    label: 'Teléfono',
-    field: 'telefono',
+    name: 'telefonos',
+    label: 'Teléfonos',
+    field: 'telefonos',
     align: 'left',
   },
   {
@@ -266,9 +245,7 @@ const openDialog = (lugar = null) => {
     isEditing.value = false
     form.value = {
       nombre: '',
-      direccion: '',
-      telefono: '',
-      email: '',
+      telefonos: '',
       activo: true,
     }
   }
@@ -281,9 +258,7 @@ const saveLugar = async () => {
   try {
     const payload = {
       nombre: form.value.nombre,
-      direccion: form.value.direccion,
-      telefono: form.value.telefono,
-      email: form.value.email,
+      telefonos: form.value.telefonos,
       activo: form.value.activo,
     }
 
@@ -302,24 +277,6 @@ const saveLugar = async () => {
     console.error(error)
   } finally {
     saving.value = false
-  }
-}
-
-const deleteLugar = async (lugar) => {
-  const confirmed = await confirm(
-    `¿Está seguro de eliminar el hotel "${lugar.nombre}"?`,
-    'Eliminar Hotel',
-  )
-
-  if (!confirmed) return
-
-  try {
-    await api.delete(`base/lugares/${lugar.id}/`)
-    notifySuccess('Hotel eliminado correctamente')
-    loadLugares()
-  } catch (error) {
-    notifyError('Error al eliminar el hotel')
-    console.error(error)
   }
 }
 

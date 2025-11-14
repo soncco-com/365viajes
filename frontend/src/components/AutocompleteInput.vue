@@ -14,15 +14,21 @@
     @update:model-value="onUpdate"
     option-value="id"
     :option-label="optionLabel"
-    emit-value
-    map-options
-    fill-input
     :menu-offset="[0, 8]"
     behavior="menu"
     :popup-content-class="'autocomplete-popup'"
   >
     <template v-slot:no-option>
-      <q-item>
+      <q-item v-if="allowCreate && currentSearchText" clickable @click="handleCreateNew">
+        <q-item-section avatar>
+          <q-icon name="add_circle" color="primary" />
+        </q-item-section>
+        <q-item-section>
+          <q-item-label>Crear "{{ currentSearchText }}"</q-item-label>
+          <q-item-label caption>Click para crear nueva opción</q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item v-else>
         <q-item-section class="text-grey">
           {{ noOptionsText }}
         </q-item-section>
@@ -111,13 +117,14 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'create', 'filter'])
+const emit = defineEmits(['update:modelValue', 'create', 'create-with-text', 'filter'])
 
 const api = useApi()
 const model = ref(props.modelValue)
 const filteredOptions = ref([])
 const allOptions = ref([])
 const loading = ref(false)
+const currentSearchText = ref('')
 
 const loadOptions = async () => {
   if (!props.endpoint) {
@@ -146,6 +153,8 @@ const loadOptions = async () => {
 }
 
 const filterFn = (val, update) => {
+  currentSearchText.value = val
+
   update(() => {
     if (val === '') {
       filteredOptions.value = allOptions.value
@@ -158,6 +167,10 @@ const filterFn = (val, update) => {
   })
 
   emit('filter', val)
+}
+
+const handleCreateNew = () => {
+  emit('create-with-text', currentSearchText.value)
 }
 
 const onUpdate = (value) => {

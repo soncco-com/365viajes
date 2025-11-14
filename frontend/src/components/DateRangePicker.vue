@@ -7,6 +7,7 @@
       :dense="dense"
       @update:model-value="onUpdateDesde"
       class="col"
+      clearable
     />
 
     <DatePicker
@@ -16,6 +17,7 @@
       :dense="dense"
       @update:model-value="onUpdateHasta"
       class="col"
+      clearable
     />
   </div>
 </template>

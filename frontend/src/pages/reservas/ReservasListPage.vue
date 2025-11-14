@@ -57,6 +57,7 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      no-data-label="No se encontraron reservas"
       class="q-mt-md"
     >
       <template v-slot:top-right>
@@ -87,7 +88,7 @@
 
       <template v-slot:body-cell-total="props">
         <q-td :props="props">
-          <span class="text-weight-bold">S/ {{ parseFloat(props.row.total).toFixed(2) }}</span>
+          <span class="text-weight-bold">S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}</span>
         </q-td>
       </template>
 
@@ -159,6 +160,13 @@ const estadoOptions = [
 ]
 
 const columns = [
+  {
+    name: 'id',
+    label: 'ID',
+    field: 'id',
+    align: 'center',
+    sortable: true,
+  },
   {
     name: 'numero',
     label: 'Número',
@@ -240,7 +248,7 @@ const loadReservas = async (props) => {
     }
 
     if (filters.value.cliente_id) {
-      params.cliente = filters.value.cliente_id
+      params.cliente = filters.value.cliente_id?.id || filters.value.cliente_id
     }
 
     if (filters.value.estado !== null && filters.value.estado !== undefined) {

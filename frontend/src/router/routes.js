@@ -58,6 +58,11 @@ const routes = [
         component: () => import('pages/informes/OrdenesServicioPage.vue'),
       },
       {
+        path: '/informes/ordenes-servicio/:id',
+        name: 'informe-orden-servicio-detalle',
+        component: () => import('pages/informes/OrdenServicioDetailPage.vue'),
+      },
+      {
         path: '/informes/rendicion-ventas',
         name: 'informe-rendicion-ventas',
         component: () => import('pages/informes/RendicionVentasPage.vue'),
@@ -110,12 +115,6 @@ const routes = [
         path: '/admin/servicios',
         name: 'admin-servicios',
         component: () => import('pages/admin/ServiciosPage.vue'),
-        meta: { requiresAdmin: true },
-      },
-      {
-        path: '/admin/transportes',
-        name: 'admin-transportes',
-        component: () => import('pages/admin/TransportesPage.vue'),
         meta: { requiresAdmin: true },
       },
       {

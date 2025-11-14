@@ -6,7 +6,7 @@
     <q-card flat bordered class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-5">
             <q-input
               v-model="filters.search"
               label="Buscar"
@@ -35,7 +35,7 @@
               dense
             />
           </div>
-          <div class="col-12 col-md-3 flex items-end">
+          <div class="col-12 col-md-4">
             <q-btn
               color="primary"
               icon="search"
@@ -55,10 +55,20 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      create-button
+      create-label="Nueva Agencia"
+      @create="showFormDialog = true"
+      no-data-label="No hay agencias registradas"
       class="q-mt-md"
     >
       <template v-slot:top-right>
-        <q-btn color="primary" icon="add" label="Nueva Agencia" @click="openDialog()" />
+        <q-btn
+          color="primary"
+          icon="add"
+          :label="$q.screen.gt.xs ? 'Nueva Agencia' : ''"
+          @click="openDialog()"
+          :class="$q.screen.xs ? 'full-width' : ''"
+        />
       </template>
 
       <template v-slot:body-cell-activo="props">
@@ -74,35 +84,38 @@
           <q-btn flat dense round icon="edit" color="primary" @click="openDialog(props.row)">
             <q-tooltip>Editar</q-tooltip>
           </q-btn>
-          <q-btn flat dense round icon="delete" color="negative" @click="deleteCliente(props.row)">
-            <q-tooltip>Eliminar</q-tooltip>
-          </q-btn>
         </q-td>
       </template>
     </data-table>
 
     <!-- Dialog de formulario -->
-    <q-dialog v-model="showDialog" persistent>
-      <q-card style="min-width: 500px">
+    <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs">
+      <q-card :style="$q.screen.gt.xs ? 'min-width: 600px; max-width: 600px' : ''">
         <q-card-section>
           <div class="text-h6">{{ isEditing ? 'Editar Agencia' : 'Nueva Agencia' }}</div>
         </q-card-section>
 
-        <q-card-section>
+        <q-card-section class="q-pa-md">
           <q-form @submit="saveCliente" class="q-gutter-md">
             <q-input
               v-model="form.nombre"
-              label="Nombre"
-              filled
+              label="Nombre *"
+              outlined
+              dense
               :rules="[(val) => !!val || 'El nombre es requerido']"
-              required
             />
 
-            <q-input v-model="form.telefonos" label="Teléfonos" filled hint="Ej: 984-123-456" />
+            <q-input
+              v-model="form.telefonos"
+              label="Teléfonos"
+              outlined
+              dense
+              hint="Ej: 984-123-456"
+            />
 
             <q-toggle v-model="form.activo" label="Activo" />
 
-            <div class="row q-gutter-sm justify-end">
+            <div class="row q-gutter-sm justify-end q-mt-md">
               <q-btn label="Cancelar" color="grey" flat @click="showDialog = false" />
               <q-btn
                 label="Guardar"
@@ -123,11 +136,13 @@
 import { ref, onMounted } from 'vue'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
+import { useQuasar } from 'quasar'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 
+const $q = useQuasar()
 const api = useApi()
-const { notifySuccess, notifyError, confirm } = useNotify()
+const { notifySuccess, notifyError } = useNotify()
 
 const clientes = ref([])
 const loading = ref(false)
@@ -268,24 +283,6 @@ const saveCliente = async () => {
     console.error(error)
   } finally {
     saving.value = false
-  }
-}
-
-const deleteCliente = async (cliente) => {
-  const confirmed = await confirm(
-    `¿Está seguro de eliminar la agencia "${cliente.nombre}"?`,
-    'Eliminar Agencia',
-  )
-
-  if (!confirmed) return
-
-  try {
-    await api.delete(`base/clientes/${cliente.id}/`)
-    notifySuccess('Agencia eliminada correctamente')
-    loadClientes()
-  } catch (error) {
-    notifyError('Error al eliminar la agencia')
-    console.error(error)
   }
 }
 

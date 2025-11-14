@@ -6,7 +6,7 @@
     />
 
     <q-form @submit="saveReserva" class="q-mt-md">
-      <q-stepper v-model="step" vertical color="primary" animated>
+      <q-stepper v-model="step" :grid="!$q.screen.lt.md" color="primary" animated>
         <q-step :name="1" title="Datos Principales" icon="info" :done="step > 1">
           <q-card flat bordered>
             <q-card-section>
@@ -21,25 +21,16 @@
 
                 <div class="col-12 col-md-4">
                   <autocomplete-input
+                    ref="clienteAutocompleteRef"
                     v-model="reserva.cliente"
                     label="Agencia *"
                     endpoint="base/clientes"
                     option-label="nombre"
                     :rules="[(val) => !!val || 'La agencia es requerida']"
-                  >
-                    <template #after>
-                      <q-btn
-                        round
-                        dense
-                        flat
-                        icon="add"
-                        color="primary"
-                        @click="showClienteDialog = true"
-                      >
-                        <q-tooltip>Crear nueva agencia</q-tooltip>
-                      </q-btn>
-                    </template>
-                  </autocomplete-input>
+                    :allow-create="true"
+                    @create="openClienteDialog()"
+                    @create-with-text="openClienteDialog"
+                  />
                 </div>
 
                 <div class="col-12 col-md-4">
@@ -65,7 +56,7 @@
                   />
                 </div>
 
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-4">
                   <q-select
                     v-model="reserva.tipo_pago"
                     :options="tipoPagoOptions"
@@ -78,7 +69,7 @@
                   />
                 </div>
 
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-4">
                   <q-select
                     v-model="reserva.tipo_documento"
                     :options="tipoDocumentoOptions"
@@ -88,17 +79,6 @@
                     clearable
                     emit-value
                     map-options
-                  />
-                </div>
-
-                <div class="col-12 col-md-3">
-                  <q-input
-                    v-model="reserva.total"
-                    label="Total"
-                    outlined
-                    dense
-                    readonly
-                    prefix="S/"
                   />
                 </div>
 
@@ -141,6 +121,7 @@
                 flat
                 bordered
                 dense
+                :grid="$q.screen.lt.md"
               >
                 <template v-slot:body-cell-servicio="props">
                   <q-td :props="props">
@@ -148,6 +129,7 @@
                       v-model="props.row.servicio"
                       endpoint="base/servicios"
                       option-label="nombre"
+                      label="Servicio"
                       dense
                       hide-bottom-space
                       @update:model-value="calcularSubtotalServicio(props.row)"
@@ -161,6 +143,7 @@
                       v-model="props.row.recoger_en"
                       endpoint="base/lugares"
                       option-label="nombre"
+                      label="Hotel"
                       dense
                       hide-bottom-space
                     />
@@ -187,28 +170,23 @@
                       dense
                       outlined
                       hide-bottom-space
+                      map-options
                     />
                   </q-td>
                 </template>
 
                 <template v-slot:body-cell-numero_pax="props">
                   <q-td :props="props">
-                    <q-input
-                      v-model.number="props.row.numero_pax"
-                      type="number"
-                      dense
-                      outlined
-                      hide-bottom-space
-                      min="1"
-                      @update:model-value="calcularSubtotalServicio(props.row)"
-                    />
+                    <div class="text-center text-weight-medium">
+                      {{ props.row.numero_pax }}
+                    </div>
                   </q-td>
                 </template>
 
                 <template v-slot:body-cell-subtotal="props">
                   <q-td :props="props">
                     <div class="text-weight-medium">
-                      S/ {{ props.row.total?.toFixed(2) || '0.00' }}
+                      S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}
                     </div>
                   </q-td>
                 </template>
@@ -225,6 +203,96 @@
                       size="sm"
                     />
                   </q-td>
+                </template>
+
+                <!-- Vista GRID para móviles -->
+                <template v-slot:item="props">
+                  <div class="q-pa-xs col-12">
+                    <q-card flat bordered>
+                      <q-card-section class="q-pb-none">
+                        <div class="text-weight-bold text-primary q-mb-md">
+                          Servicio #{{ props.rowIndex + 1 }}
+                        </div>
+                      </q-card-section>
+
+                      <q-card-section class="q-pt-sm">
+                        <div class="q-gutter-md">
+                          <autocomplete-input
+                            v-model="props.row.servicio"
+                            endpoint="base/servicios"
+                            option-label="nombre"
+                            label="Servicio *"
+                            dense
+                            @update:model-value="calcularSubtotalServicio(props.row)"
+                          />
+
+                          <autocomplete-input
+                            v-model="props.row.recoger_en"
+                            endpoint="base/lugares"
+                            option-label="nombre"
+                            label="Lugar"
+                            dense
+                          />
+
+                          <div class="row q-col-gutter-md">
+                            <div class="col-6">
+                              <q-input
+                                v-model="props.row.cuando"
+                                type="time"
+                                label="Hora"
+                                dense
+                                outlined
+                              />
+                            </div>
+                            <div class="col-6">
+                              <q-select
+                                v-model="props.row.idioma"
+                                :options="idiomaOptions"
+                                label="Idioma"
+                                dense
+                                outlined
+                                map-options
+                              />
+                            </div>
+                          </div>
+
+                          <div class="row q-col-gutter-md items-center">
+                            <div class="col-6">
+                              <q-input
+                                v-model.number="props.row.numero_pax"
+                                type="number"
+                                label="PAX"
+                                dense
+                                outlined
+                                min="1"
+                                @update:model-value="calcularSubtotalServicio(props.row)"
+                              />
+                            </div>
+                            <div class="col-6">
+                              <div class="text-center">
+                                <div class="text-caption text-grey-7">Subtotal</div>
+                                <div class="text-weight-bold text-h6 text-primary">
+                                  S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </q-card-section>
+
+                      <q-separator />
+
+                      <q-card-actions align="right">
+                        <q-btn
+                          flat
+                          color="negative"
+                          icon="delete"
+                          label="Eliminar"
+                          @click="removeServicio(props.rowIndex)"
+                        />
+                      </q-card-actions>
+                    </q-card>
+                  </div>
                 </template>
               </q-table>
 
@@ -260,6 +328,7 @@
                 flat
                 bordered
                 dense
+                :grid="$q.screen.lt.md"
               >
                 <template v-slot:body-cell-adicional="props">
                   <q-td :props="props">
@@ -313,7 +382,7 @@
                 <template v-slot:body-cell-subtotal="props">
                   <q-td :props="props">
                     <div class="text-weight-medium">
-                      S/ {{ props.row.subtotal?.toFixed(2) || '0.00' }}
+                      S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}
                     </div>
                   </q-td>
                 </template>
@@ -330,6 +399,86 @@
                       size="sm"
                     />
                   </q-td>
+                </template>
+
+                <!-- Vista GRID para móviles -->
+                <template v-slot:item="props">
+                  <div class="q-pa-xs col-12">
+                    <q-card flat bordered>
+                      <q-card-section class="q-pb-none">
+                        <div class="text-weight-bold text-primary q-mb-md">
+                          Adicional #{{ props.rowIndex + 1 }}
+                        </div>
+                      </q-card-section>
+
+                      <q-card-section class="q-pt-sm">
+                        <div class="q-gutter-md">
+                          <autocomplete-input
+                            v-model="props.row.adicional"
+                            endpoint="base/adicionales"
+                            option-label="nombre"
+                            label="Adicional *"
+                            dense
+                            @update:model-value="calcularSubtotalAdicional(props.row)"
+                          />
+
+                          <div class="row q-col-gutter-md">
+                            <div class="col-6">
+                              <q-input
+                                v-model="props.row.cuando"
+                                type="time"
+                                label="Hora"
+                                dense
+                                outlined
+                              />
+                            </div>
+                            <div class="col-6">
+                              <q-input
+                                v-model.number="props.row.cantidad"
+                                type="number"
+                                label="Cantidad"
+                                dense
+                                outlined
+                                min="1"
+                                @update:model-value="calcularSubtotalAdicional(props.row)"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="row q-col-gutter-md items-center">
+                            <div class="col-6">
+                              <q-checkbox
+                                v-model="props.row.contable"
+                                label="Contable"
+                                dense
+                                @update:model-value="calcularTotal"
+                              />
+                            </div>
+                            <div class="col-6">
+                              <div class="text-center">
+                                <div class="text-caption text-grey-7">Subtotal</div>
+                                <div class="text-weight-bold text-h6 text-primary">
+                                  S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </q-card-section>
+
+                      <q-separator />
+
+                      <q-card-actions align="right">
+                        <q-btn
+                          flat
+                          color="negative"
+                          icon="delete"
+                          label="Eliminar"
+                          @click="removeAdicional(props.rowIndex)"
+                        />
+                      </q-card-actions>
+                    </q-card>
+                  </div>
                 </template>
               </q-table>
 
@@ -391,7 +540,7 @@
                         </div>
                         <q-separator dark class="q-my-md" />
                         <div class="text-h4">
-                          <strong>TOTAL: S/ {{ reserva.total?.toFixed(2) || '0.00' }}</strong>
+                          <strong>TOTAL: S/ {{ parseFloat(reserva.total || 0).toFixed(2) }}</strong>
                         </div>
                       </div>
                     </q-card-section>
@@ -408,12 +557,12 @@
                             <q-item-label>{{ detalle.servicio?.nombre || 'N/A' }}</q-item-label>
                             <q-item-label caption>
                               {{ detalle.recoger_en?.nombre || 'N/A' }} - {{ detalle.cuando }} -
-                              {{ detalle.idioma }} - {{ detalle.numero_pax }} pax
+                              {{ getIdiomaLabel(detalle.idioma) }} - {{ detalle.numero_pax }} pax
                             </q-item-label>
                           </q-item-section>
                           <q-item-section side>
                             <q-item-label
-                              >S/ {{ detalle.total?.toFixed(2) || '0.00' }}</q-item-label
+                              >S/ {{ parseFloat(detalle.total || 0).toFixed(2) }}</q-item-label
                             >
                           </q-item-section>
                         </q-item>
@@ -445,7 +594,7 @@
                           </q-item-section>
                           <q-item-section side>
                             <q-item-label
-                              >S/ {{ adicional.subtotal?.toFixed(2) || '0.00' }}</q-item-label
+                              >S/ {{ parseFloat(adicional.total || 0).toFixed(2) }}</q-item-label
                             >
                           </q-item-section>
                         </q-item>
@@ -466,8 +615,8 @@
       </q-stepper>
     </q-form>
 
-    <q-dialog v-model="showClienteDialog">
-      <q-card style="min-width: 400px">
+    <q-dialog v-model="showClienteDialog" :maximized="$q.screen.xs">
+      <q-card :style="$q.screen.gt.xs ? 'min-width: 400px; max-width: 500px' : ''">
         <q-card-section>
           <div class="text-h6">Nueva Agencia</div>
         </q-card-section>
@@ -475,16 +624,8 @@
         <q-card-section class="q-pt-none">
           <q-input v-model="nuevoCliente.nombre" label="Nombre *" outlined dense />
           <q-input
-            v-model="nuevoCliente.telefono"
-            label="Teléfono"
-            outlined
-            dense
-            class="q-mt-sm"
-          />
-          <q-input
-            v-model="nuevoCliente.email"
-            label="Email"
-            type="email"
+            v-model="nuevoCliente.telefonos"
+            label="Teléfonos"
             outlined
             dense
             class="q-mt-sm"
@@ -503,12 +644,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
 import DatePicker from 'src/components/DatePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 
+const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
@@ -517,6 +660,7 @@ const { notifySuccess, notifyError } = useNotify()
 const step = ref(1)
 const isEditing = computed(() => !!route.params.id)
 const showClienteDialog = ref(false)
+const clienteAutocompleteRef = ref(null)
 
 const reserva = ref({
   fecha: null,
@@ -533,9 +677,16 @@ const reserva = ref({
 
 const nuevoCliente = ref({
   nombre: '',
-  telefono: '',
-  email: '',
+  telefonos: '',
 })
+
+const openClienteDialog = (searchText = '') => {
+  nuevoCliente.value = {
+    nombre: searchText,
+    telefonos: '',
+  }
+  showClienteDialog.value = true
+}
 
 const estadoOptions = [
   { label: 'Pagado', value: '0' },
@@ -576,7 +727,6 @@ const idiomaOptions = [
 const serviciosColumns = [
   { name: 'servicio', label: 'Servicio', field: 'servicio', align: 'left' },
   { name: 'lugar', label: 'Lugar', field: 'recoger_en', align: 'left' },
-  { name: 'cuando', label: 'Hora', field: 'cuando', align: 'center' },
   { name: 'idioma', label: 'Idioma', field: 'idioma', align: 'center' },
   { name: 'numero_pax', label: 'PAX', field: 'numero_pax', align: 'center' },
   { name: 'subtotal', label: 'Subtotal', field: 'total', align: 'right' },
@@ -588,22 +738,25 @@ const adicionalesColumns = [
   { name: 'cuando', label: 'Hora', field: 'cuando', align: 'center' },
   { name: 'cantidad', label: 'Cantidad', field: 'cantidad', align: 'center' },
   { name: 'contable', label: 'Contable', field: 'contable', align: 'center' },
-  { name: 'subtotal', label: 'Subtotal', field: 'subtotal', align: 'right' },
+  { name: 'subtotal', label: 'Subtotal', field: 'total', align: 'right' },
   { name: 'acciones', label: 'Acciones', align: 'center' },
 ]
 
 const subtotalServicios = computed(() => {
-  return reserva.value.detalles.reduce((sum, detalle) => sum + (detalle.total || 0), 0)
+  return reserva.value.detalles.reduce((sum, detalle) => sum + (parseFloat(detalle.total) || 0), 0)
 })
 
 const subtotalAdicionales = computed(() => {
-  return reserva.value.adicionales.reduce((sum, adicional) => sum + (adicional.subtotal || 0), 0)
+  return reserva.value.adicionales.reduce(
+    (sum, adicional) => sum + (parseFloat(adicional.total) || 0),
+    0,
+  )
 })
 
 const totalNoContable = computed(() => {
   return reserva.value.adicionales
     .filter((adicional) => !adicional.contable)
-    .reduce((sum, adicional) => sum + (adicional.subtotal || 0), 0)
+    .reduce((sum, adicional) => sum + (parseFloat(adicional.total) || 0), 0)
 })
 
 watch([subtotalServicios, subtotalAdicionales, totalNoContable], () => {
@@ -615,21 +768,19 @@ function calcularTotal() {
 }
 
 function calcularSubtotalServicio(detalle) {
-  if (detalle.servicio && detalle.numero_pax) {
-    detalle.total = detalle.servicio.precio * detalle.numero_pax
+  if (detalle.servicio?.precio && detalle.numero_pax) {
+    detalle.total = parseFloat(detalle.servicio.precio) * parseInt(detalle.numero_pax)
   } else {
     detalle.total = 0
   }
-  calcularTotal()
 }
 
 function calcularSubtotalAdicional(adicional) {
-  if (adicional.adicional && adicional.cantidad) {
-    adicional.subtotal = adicional.adicional.precio * adicional.cantidad
+  if (adicional.adicional?.precio && adicional.cantidad) {
+    adicional.total = parseFloat(adicional.adicional.precio) * parseInt(adicional.cantidad)
   } else {
-    adicional.subtotal = 0
+    adicional.total = 0
   }
-  calcularTotal()
 }
 
 function addServicio() {
@@ -638,7 +789,7 @@ function addServicio() {
     servicio: null,
     recoger_en: null,
     cuando: '',
-    idioma: 'Español',
+    idioma: { value: 'es', label: 'Español' },
     numero_pax: 1,
     total: 0,
     seleccionado: false,
@@ -657,7 +808,7 @@ function addAdicional() {
     cuando: '',
     cantidad: 1,
     contable: true,
-    subtotal: 0,
+    total: 0,
   })
 }
 
@@ -671,13 +822,65 @@ function getEstadoLabel(value) {
   return option ? option.label : 'N/A'
 }
 
+function getIdiomaLabel(value) {
+  // Si es un objeto, retornar el label directamente
+  if (typeof value === 'object' && value?.label) {
+    return value.label
+  }
+  // Si es un string, buscar en las opciones
+  const option = idiomaOptions.find((opt) => opt.value === value)
+  return option ? option.label : value
+}
+
 async function loadReserva() {
   try {
     const response = await api.get(`reservas/reservas/${route.params.id}/`)
+
+    // Cargar objetos completos para servicio y lugar en cada detalle
+    const detallesPromises = (response.data.detalles || []).map(async (detalle) => {
+      const [servicioRes, lugarRes] = await Promise.all([
+        detalle.servicio ? api.get(`base/servicios/${detalle.servicio}/`) : Promise.resolve(null),
+        detalle.recoger_en ? api.get(`base/lugares/${detalle.recoger_en}/`) : Promise.resolve(null),
+      ])
+
+      return {
+        ...detalle,
+        servicio: servicioRes?.data || null,
+        recoger_en: lugarRes?.data || null,
+        idioma: idiomaOptions.find((opt) => opt.value === detalle.idioma) || {
+          value: 'es',
+          label: 'Español',
+        },
+      }
+    })
+
+    // Cargar objetos completos para adicional en cada adicional
+    const adicionalesPromises = (response.data.adicionales_detalle || []).map(async (adicional) => {
+      const adicionalRes = adicional.adicional
+        ? await api.get(`base/adicionales/${adicional.adicional}/`)
+        : null
+
+      return {
+        ...adicional,
+        adicional: adicionalRes?.data || null,
+      }
+    })
+
+    // Cargar objeto completo del cliente
+    const clienteRes = response.data.cliente
+      ? await api.get(`base/clientes/${response.data.cliente}/`)
+      : null
+
+    const [detalles, adicionales] = await Promise.all([
+      Promise.all(detallesPromises),
+      Promise.all(adicionalesPromises),
+    ])
+
     reserva.value = {
       ...response.data,
-      detalles: response.data.detalles || [],
-      adicionales: response.data.adicionales || [],
+      cliente: clienteRes?.data || null,
+      detalles,
+      adicionales,
     }
     calcularTotal()
   } catch (error) {
@@ -690,31 +893,34 @@ async function saveReserva() {
   try {
     const data = {
       fecha: reserva.value.fecha,
-      cliente: reserva.value.cliente?.id,
+      cliente: reserva.value.cliente?.id ? parseInt(reserva.value.cliente.id) : null,
       pasajero: reserva.value.pasajero,
       estado: reserva.value.estado,
       tipo_pago: reserva.value.tipo_pago,
       tipo_documento: reserva.value.tipo_documento,
-      total: reserva.value.total,
+      total: parseFloat(reserva.value.total) || 0,
       observaciones: reserva.value.observaciones,
-      detalles: reserva.value.detalles.map((detalle) => ({
-        id: detalle.id > 1000000000000 ? null : detalle.id,
-        servicio: detalle.servicio?.id,
-        recoger_en: detalle.recoger_en?.id,
-        cuando: detalle.cuando,
-        idioma: detalle.idioma,
-        numero_pax: detalle.numero_pax,
-        total: detalle.total,
-        seleccionado: detalle.seleccionado,
-      })),
-      adicionales: reserva.value.adicionales.map((adicional) => ({
-        id: adicional.id > 1000000000000 ? null : adicional.id,
-        adicional: adicional.adicional?.id,
-        cuando: adicional.cuando,
-        cantidad: adicional.cantidad,
-        contable: adicional.contable,
-        subtotal: adicional.subtotal,
-      })),
+      detalles_data: reserva.value.detalles
+        .filter((detalle) => detalle.servicio?.id && detalle.recoger_en?.id)
+        .map((detalle) => ({
+          ...(detalle.id && { id: parseInt(detalle.id) }), // Incluir ID si existe (para edición)
+          servicio: parseInt(detalle.servicio.id),
+          recoger_en: parseInt(detalle.recoger_en.id),
+          cuando: reserva.value.fecha,
+          idioma: detalle.idioma?.value || detalle.idioma || 'es',
+          numero_pax: parseInt(detalle.numero_pax) || 1,
+          total: parseFloat(detalle.total) || 0,
+          seleccionado: detalle.seleccionado || false,
+        })),
+      adicionales_data: reserva.value.adicionales
+        .filter((adicional) => adicional.adicional?.id)
+        .map((adicional) => ({
+          ...(adicional.id && { id: parseInt(adicional.id) }), // Incluir ID si existe (para edición)
+          adicional: parseInt(adicional.adicional.id),
+          cuando: reserva.value.fecha,
+          cantidad: parseInt(adicional.cantidad) || 1,
+          total: parseFloat(adicional.total) || 0,
+        })),
     }
 
     if (isEditing.value) {
@@ -736,14 +942,19 @@ async function createCliente() {
   try {
     const response = await api.post('base/clientes/', {
       nombre: nuevoCliente.value.nombre,
-      telefono: nuevoCliente.value.telefono,
-      email: nuevoCliente.value.email,
+      telefonos: nuevoCliente.value.telefonos,
       activo: true,
     })
 
     reserva.value.cliente = response.data
     showClienteDialog.value = false
-    nuevoCliente.value = { nombre: '', telefono: '', email: '' }
+    nuevoCliente.value = { nombre: '', telefonos: '' }
+
+    // Recargar opciones del autocomplete
+    if (clienteAutocompleteRef.value) {
+      await clienteAutocompleteRef.value.reload()
+    }
+
     notifySuccess('Agencia creada correctamente')
   } catch (error) {
     notifyError('Error al crear la agencia')

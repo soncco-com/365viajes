@@ -41,11 +41,13 @@
     </q-card>
 
     <data-table
-      :rows="registros"
+      :rows="logs"
       :columns="columns"
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      :searchable="false"
+      no-data-label="No se encontraron registros de auditoría"
       class="q-mt-md"
     >
       <template v-slot:body-cell-accion="props">
@@ -227,7 +229,7 @@ const loadAuditoria = async (props) => {
       params.fecha__lte = filters.value.fecha.to
     }
     if (filters.value.usuario) {
-      params.usuario = filters.value.usuario.id
+      params.usuario = filters.value.usuario?.id || filters.value.usuario
     }
     if (filters.value.accion) {
       params.accion = filters.value.accion

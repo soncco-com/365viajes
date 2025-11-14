@@ -36,6 +36,7 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      no-data-label="No se encontraron gastos registrados"
       class="q-mt-md"
     >
       <template v-slot:top-right>
@@ -146,7 +147,18 @@ const form = ref({
 })
 
 const columns = [
-  { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left', sortable: true },
+  {
+    name: 'fecha',
+    label: 'Fecha',
+    field: 'fecha',
+    align: 'left',
+    sortable: true,
+    format: (val) => {
+      if (!val) return ''
+      const [year, month, day] = val.split('-')
+      return `${day}/${month}/${year}`
+    },
+  },
   {
     name: 'orden',
     label: 'Orden Servicio',
@@ -186,7 +198,7 @@ const loadGastos = async (props) => {
       params.fecha__lte = filters.value.fecha.to
     }
     if (filters.value.orden) {
-      params.orden_servicio = filters.value.orden.id
+      params.orden_servicio = filters.value.orden?.id || filters.value.orden
     }
 
     const response = await api.get('reservas/gastos/', { params })

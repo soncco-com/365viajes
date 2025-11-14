@@ -85,6 +85,7 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      no-data-label="No se encontraron reservas para el período seleccionado"
       class="q-mt-md"
     >
       <template v-slot:body-cell-estado="props">
@@ -145,7 +146,18 @@ const estadoOptions = [
 
 const columns = [
   { name: 'numero', label: 'N°', field: 'numero', align: 'left', sortable: true },
-  { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left', sortable: true },
+  {
+    name: 'fecha',
+    label: 'Fecha',
+    field: 'fecha',
+    align: 'left',
+    sortable: true,
+    format: (val) => {
+      if (!val) return ''
+      const [year, month, day] = val.split('-')
+      return `${day}/${month}/${year}`
+    },
+  },
   {
     name: 'cliente',
     label: 'Agencia',

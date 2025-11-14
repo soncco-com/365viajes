@@ -6,7 +6,7 @@
     <q-card flat bordered class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-5">
             <q-input
               v-model="filters.search"
               label="Buscar"
@@ -35,7 +35,7 @@
               dense
             />
           </div>
-          <div class="col-12 col-md-3 flex items-end">
+          <div class="col-12 col-md-4">
             <q-btn
               color="primary"
               icon="search"
@@ -55,15 +55,27 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      create-button
+      create-label="Nuevo Adicional"
+      @create="showFormDialog = true"
+      no-data-label="No hay servicios adicionales registrados"
       class="q-mt-md"
     >
       <template v-slot:top-right>
-        <q-btn color="primary" icon="add" label="Nuevo Adicional" @click="openDialog()" />
+        <q-btn
+          color="primary"
+          icon="add"
+          :label="$q.screen.gt.xs ? 'Nuevo Adicional' : ''"
+          @click="openDialog()"
+          :class="$q.screen.xs ? 'full-width' : ''"
+        />
       </template>
 
       <template v-slot:body-cell-precio="props">
         <q-td :props="props">
-          <span class="text-weight-bold">S/ {{ parseFloat(props.row.precio).toFixed(2) }}</span>
+          <span class="text-weight-bold"
+            >S/ {{ parseFloat(props.row.precio || 0).toFixed(2) }}</span
+          >
         </q-td>
       </template>
 
@@ -88,57 +100,67 @@
           <q-btn flat dense round icon="edit" color="primary" @click="openDialog(props.row)">
             <q-tooltip>Editar</q-tooltip>
           </q-btn>
-          <q-btn
-            flat
-            dense
-            round
-            icon="delete"
-            color="negative"
-            @click="deleteAdicional(props.row)"
-          >
-            <q-tooltip>Eliminar</q-tooltip>
-          </q-btn>
         </q-td>
       </template>
     </data-table>
 
     <!-- Dialog de formulario -->
-    <q-dialog v-model="showDialog" persistent>
-      <q-card style="min-width: 500px">
+    <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs">
+      <q-card :style="$q.screen.gt.xs ? 'min-width: 600px; max-width: 600px' : ''">
         <q-card-section>
           <div class="text-h6">{{ isEditing ? 'Editar Adicional' : 'Nuevo Adicional' }}</div>
         </q-card-section>
 
-        <q-card-section>
+        <q-card-section class="q-pa-md">
           <q-form @submit="saveAdicional" class="q-gutter-md">
             <q-input
               v-model="form.nombre"
-              label="Nombre del Adicional"
-              filled
+              label="Nombre del Adicional *"
+              outlined
+              dense
               :rules="[(val) => !!val || 'El nombre es requerido']"
-              required
             />
 
             <q-input
               v-model.number="form.precio"
-              label="Precio"
+              label="Precio *"
               type="number"
-              filled
+              outlined
+              dense
               prefix="S/"
               step="0.01"
               :rules="[(val) => val >= 0 || 'El precio debe ser mayor o igual a 0']"
-              required
             />
 
-            <q-toggle v-model="form.contable" label="Contable">
-              <q-tooltip>
-                Si está desmarcado, este adicional se restará del total (descuento)
-              </q-tooltip>
-            </q-toggle>
+            <date-picker
+              v-model="form.fecha_precio"
+              label="Fecha de Precio *"
+              :rules="[(val) => !!val || 'La fecha es requerida']"
+            />
 
-            <q-toggle v-model="form.activo" label="Activo" />
+            <div class="row q-col-gutter-md">
+              <div class="col-6">
+                <q-toggle v-model="form.contable" label="Contable">
+                  <q-tooltip>
+                    Si está desmarcado, este adicional se restará del total (descuento)
+                  </q-tooltip>
+                </q-toggle>
+              </div>
+              <div class="col-6">
+                <q-toggle v-model="form.almuerzo" label="Almuerzo" />
+              </div>
+              <div class="col-6">
+                <q-toggle v-model="form.boleto" label="Boleto" />
+              </div>
+              <div class="col-6">
+                <q-toggle v-model="form.visible" label="Visible" />
+              </div>
+              <div class="col-6">
+                <q-toggle v-model="form.activo" label="Activo" />
+              </div>
+            </div>
 
-            <div class="row q-gutter-sm justify-end">
+            <div class="row q-gutter-sm justify-end q-mt-md">
               <q-btn label="Cancelar" color="grey" flat @click="showDialog = false" />
               <q-btn
                 label="Guardar"
@@ -159,11 +181,14 @@
 import { ref, onMounted } from 'vue'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
+import { useQuasar } from 'quasar'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
+import DatePicker from 'src/components/DatePicker.vue'
 
+const $q = useQuasar()
 const api = useApi()
-const { notifySuccess, notifyError, confirm } = useNotify()
+const { notifySuccess, notifyError } = useNotify()
 
 const adicionales = ref([])
 const loading = ref(false)
@@ -184,7 +209,11 @@ const estadoOptions = [
 const form = ref({
   nombre: '',
   precio: 0,
+  fecha_precio: null,
   contable: true,
+  almuerzo: false,
+  boleto: false,
+  visible: true,
   activo: true,
 })
 
@@ -280,7 +309,11 @@ const openDialog = (adicional = null) => {
       id: adicional.id,
       nombre: adicional.nombre,
       precio: parseFloat(adicional.precio),
+      fecha_precio: adicional.fecha_precio,
       contable: adicional.contable,
+      almuerzo: adicional.almuerzo || false,
+      boleto: adicional.boleto || false,
+      visible: adicional.visible !== undefined ? adicional.visible : true,
       activo: adicional.activo,
     }
   } else {
@@ -288,7 +321,11 @@ const openDialog = (adicional = null) => {
     form.value = {
       nombre: '',
       precio: 0,
+      fecha_precio: null,
       contable: true,
+      almuerzo: false,
+      boleto: false,
+      visible: true,
       activo: true,
     }
   }
@@ -302,7 +339,11 @@ const saveAdicional = async () => {
     const payload = {
       nombre: form.value.nombre,
       precio: form.value.precio,
+      fecha_precio: form.value.fecha_precio,
       contable: form.value.contable,
+      almuerzo: form.value.almuerzo,
+      boleto: form.value.boleto,
+      visible: form.value.visible,
       activo: form.value.activo,
     }
 
@@ -321,24 +362,6 @@ const saveAdicional = async () => {
     console.error(error)
   } finally {
     saving.value = false
-  }
-}
-
-const deleteAdicional = async (adicional) => {
-  const confirmed = await confirm(
-    `¿Está seguro de eliminar el adicional "${adicional.nombre}"?`,
-    'Eliminar Adicional',
-  )
-
-  if (!confirmed) return
-
-  try {
-    await api.delete(`base/adicionales/${adicional.id}/`)
-    notifySuccess('Adicional eliminado correctamente')
-    loadAdicionales()
-  } catch (error) {
-    notifyError('Error al eliminar el adicional')
-    console.error(error)
   }
 }
 

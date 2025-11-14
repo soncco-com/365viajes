@@ -9,12 +9,12 @@
       <q-card-section>
         <div class="row q-col-gutter-md">
           <div class="col-12 col-md-6">
-            <date-range-picker v-model="filters.fecha" label="Rango de fechas" />
+            <date-range-picker v-model="filters.fecha" label="Rango de fechas *" />
           </div>
           <div class="col-12 col-md-4">
             <autocomplete-input
               v-model="filters.adicional"
-              label="Adicional"
+              label="Adicional *"
               endpoint="base/adicionales"
               option-label="nombre"
             />
@@ -38,18 +38,19 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      no-data-label="No se encontraron adicionales vendidos"
       class="q-mt-md"
     >
       <template v-slot:body-cell-contable="props">
         <q-td :props="props">
-          <q-badge :color="props.row.adicional?.contable ? 'positive' : 'warning'">
-            {{ props.row.adicional?.contable ? 'Contable' : 'No Contable' }}
+          <q-badge :color="props.row.adicional_contable ? 'positive' : 'warning'">
+            {{ props.row.adicional_contable ? 'Contable' : 'No Contable' }}
           </q-badge>
         </q-td>
       </template>
 
       <template v-slot:body-cell-subtotal="props">
-        <q-td :props="props">S/ {{ props.row.subtotal }}</q-td>
+        <q-td :props="props">S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}</q-td>
       </template>
     </data-table>
 
@@ -89,28 +90,41 @@ const { notifyError } = useNotify()
 
 const adicionales = ref([])
 const loading = ref(false)
-const filters = ref({ fecha: { from: null, to: null }, adicional: null })
+const filters = ref({ fecha: { desde: null, hasta: null }, adicional: null })
 
 const columns = [
   {
-    name: 'fecha',
+    name: 'cuando',
     label: 'Fecha',
-    field: (row) => row.reserva?.fecha,
+    field: 'cuando',
     align: 'left',
     sortable: true,
+    format: (val) => {
+      if (!val) return ''
+      const [year, month, day] = val.split('-')
+      return `${day}/${month}/${year}`
+    },
   },
-  { name: 'reserva', label: 'Reserva', field: (row) => row.reserva?.numero, align: 'left' },
-  {
-    name: 'cliente',
-    label: 'Agencia',
-    field: (row) => row.reserva?.cliente?.nombre_comercial,
-    align: 'left',
-  },
-  { name: 'adicional', label: 'Adicional', field: (row) => row.adicional?.nombre, align: 'left' },
+  { name: 'reserva', label: 'Reserva', field: 'reserva_id', align: 'left' },
+  { name: 'pasajero', label: 'Pasajero', field: 'reserva_pasajero', align: 'left' },
+  { name: 'adicional', label: 'Adicional', field: 'adicional_nombre', align: 'left' },
   { name: 'cantidad', label: 'Cant.', field: 'cantidad', align: 'center' },
-  { name: 'precio', label: 'Precio Unit.', field: (row) => row.adicional?.precio, align: 'right' },
-  { name: 'contable', label: 'Tipo', field: 'contable', align: 'center' },
-  { name: 'subtotal', label: 'Subtotal', field: 'subtotal', align: 'right', sortable: true },
+  {
+    name: 'precio',
+    label: 'Precio Unit.',
+    field: 'adicional_precio',
+    align: 'right',
+    format: (val) => `S/ ${parseFloat(val || 0).toFixed(2)}`,
+  },
+  { name: 'contable', label: 'Tipo', field: 'adicional_contable', align: 'center' },
+  {
+    name: 'subtotal',
+    label: 'Subtotal',
+    field: 'total',
+    align: 'right',
+    sortable: true,
+    format: (val) => `S/ ${parseFloat(val || 0).toFixed(2)}`,
+  },
 ]
 
 const pagination = ref({
@@ -123,19 +137,25 @@ const pagination = ref({
 
 const totalContable = computed(() => {
   return adicionales.value.reduce(
-    (sum, a) => (a.adicional?.contable ? sum + parseFloat(a.subtotal || 0) : sum),
+    (sum, a) => (a.adicional_contable ? sum + parseFloat(a.total || 0) : sum),
     0,
   )
 })
 
 const totalNoContable = computed(() => {
   return adicionales.value.reduce(
-    (sum, a) => (!a.adicional?.contable ? sum + parseFloat(a.subtotal || 0) : sum),
+    (sum, a) => (!a.adicional_contable ? sum + parseFloat(a.total || 0) : sum),
     0,
   )
 })
 
 const loadReporte = async (props) => {
+  // Validar filtros obligatorios
+  if (!filters.value.fecha.desde || !filters.value.fecha.hasta || !filters.value.adicional) {
+    notifyError('Debe seleccionar rango de fechas y adicional')
+    return
+  }
+
   loading.value = true
   try {
     const { page, rowsPerPage, sortBy, descending } = props?.pagination || pagination.value
@@ -143,14 +163,9 @@ const loadReporte = async (props) => {
       page,
       page_size: rowsPerPage,
       ordering: (descending ? '-' : '') + sortBy,
-    }
-
-    if (filters.value.fecha.from && filters.value.fecha.to) {
-      params.reserva__fecha__gte = filters.value.fecha.from
-      params.reserva__fecha__lte = filters.value.fecha.to
-    }
-    if (filters.value.adicional) {
-      params.adicional = filters.value.adicional.id
+      cuando__gte: filters.value.fecha.desde,
+      cuando__lte: filters.value.fecha.hasta,
+      adicional: filters.value.adicional?.id || filters.value.adicional,
     }
 
     const response = await api.get('reservas/reserva-adicionales/', { params })
@@ -174,7 +189,6 @@ const onRequest = (props) => loadReporte(props)
 
 onMounted(() => {
   const today = new Date().toISOString().split('T')[0]
-  filters.value.fecha = { from: today, to: today }
-  loadReporte()
+  filters.value.fecha = { desde: today, hasta: today }
 })
 </script>

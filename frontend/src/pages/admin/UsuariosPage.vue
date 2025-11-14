@@ -11,7 +11,13 @@
       class="q-mt-md"
     >
       <template v-slot:top-right>
-        <q-btn color="primary" icon="add" label="Nuevo Usuario" @click="openDialog()" />
+        <q-btn
+          color="primary"
+          icon="add"
+          :label="$q.screen.gt.xs ? 'Nuevo Usuario' : ''"
+          @click="openDialog()"
+          :class="$q.screen.xs ? 'full-width' : ''"
+        />
       </template>
 
       <template v-slot:body-cell-is_active="props">
@@ -24,7 +30,7 @@
 
       <template v-slot:body-cell-groups="props">
         <q-td :props="props">
-          <q-badge v-for="group in props.row.groups" :key="group.id" color="info" class="q-mr-xs">
+          <q-badge v-for="group in props.row.grupos" :key="group.id" color="info" class="q-mr-xs">
             {{ group.name }}
           </q-badge>
         </q-td>
@@ -32,63 +38,82 @@
 
       <template v-slot:body-cell-actions="props">
         <q-td :props="props">
-          <q-btn flat dense round icon="edit" color="primary" @click="openDialog(props.row)" />
-          <q-btn
-            flat
-            dense
-            round
-            icon="delete"
-            color="negative"
-            @click="deleteUsuario(props.row)"
-            v-if="props.row.id !== currentUser?.id"
-          />
+          <q-btn flat dense round icon="edit" color="primary" @click="openDialog(props.row)">
+            <q-tooltip>Editar</q-tooltip>
+          </q-btn>
         </q-td>
       </template>
     </data-table>
 
-    <q-dialog v-model="showDialog" persistent>
-      <q-card style="min-width: 600px">
+    <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs">
+      <q-card :style="$q.screen.gt.xs ? 'min-width: 700px; max-width: 700px' : ''">
         <q-card-section>
           <div class="text-h6">{{ isEditing ? 'Editar Usuario' : 'Nuevo Usuario' }}</div>
         </q-card-section>
 
-        <q-card-section>
+        <q-card-section class="q-pa-md">
           <q-form @submit="saveUsuario" class="q-gutter-md">
-            <q-input
-              v-model="form.username"
-              label="Nombre de usuario"
-              filled
-              :rules="[(val) => !!val || 'Requerido']"
-              required
-            />
-            <q-input v-model="form.email" label="Email" type="email" filled />
-            <q-input v-model="form.first_name" label="Nombre" filled />
-            <q-input v-model="form.last_name" label="Apellido" filled />
-            <q-input
-              v-model="form.password"
-              label="Contraseña"
-              type="password"
-              filled
-              :rules="isEditing ? [] : [(val) => !!val || 'Requerido']"
-              :hint="isEditing ? 'Dejar vacío para no cambiar' : ''"
-            />
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-6">
+                <q-input
+                  v-model="form.username"
+                  label="Nombre de usuario *"
+                  outlined
+                  dense
+                  :rules="[(val) => !!val || 'Requerido']"
+                />
+              </div>
 
-            <q-select
-              v-model="form.groups"
-              :options="grupos"
-              option-value="id"
-              option-label="name"
-              label="Grupos"
-              filled
-              multiple
-              emit-value
-              map-options
-            />
+              <div class="col-12 col-md-6">
+                <q-input v-model="form.email" label="Email" type="email" outlined dense />
+              </div>
 
-            <q-toggle v-model="form.is_active" label="Activo" />
-            <q-toggle v-model="form.is_staff" label="Staff (acceso admin)" />
+              <div class="col-12 col-md-6">
+                <q-input v-model="form.first_name" label="Nombre" outlined dense />
+              </div>
 
-            <div class="row q-gutter-sm justify-end">
+              <div class="col-12 col-md-6">
+                <q-input v-model="form.last_name" label="Apellido" outlined dense />
+              </div>
+
+              <div class="col-12">
+                <q-input
+                  v-model="form.password"
+                  label="Contraseña"
+                  type="password"
+                  outlined
+                  dense
+                  :rules="isEditing ? [] : [(val) => !!val || 'Requerido']"
+                  :hint="isEditing ? 'Dejar vacío para no cambiar' : ''"
+                />
+              </div>
+
+              <div class="col-12">
+                <q-select
+                  v-model="form.groups"
+                  :options="grupos"
+                  option-value="id"
+                  option-label="name"
+                  label="Grupos"
+                  outlined
+                  dense
+                  multiple
+                  emit-value
+                  map-options
+                  use-chips
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <q-toggle v-model="form.is_active" label="Activo" />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <q-toggle v-model="form.is_staff" label="Staff (acceso admin)" />
+              </div>
+            </div>
+
+            <div class="row q-gutter-sm justify-end q-mt-md">
               <q-btn label="Cancelar" color="grey" flat @click="showDialog = false" />
               <q-btn label="Guardar" type="submit" color="primary" :loading="saving" />
             </div>
@@ -102,14 +127,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useApi } from 'src/composables/useApi'
-import { useAuth } from 'src/composables/useAuth'
 import { useNotify } from 'src/composables/useNotify'
+import { useQuasar } from 'quasar'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 
+const $q = useQuasar()
 const api = useApi()
-const { user: currentUser } = useAuth()
-const { notifySuccess, notifyError, confirm } = useNotify()
+const { notifySuccess, notifyError } = useNotify()
 
 const usuarios = ref([])
 const grupos = ref([])
@@ -181,9 +206,15 @@ const openDialog = (usuario = null) => {
   isEditing.value = !!usuario
   if (usuario) {
     form.value = {
-      ...usuario,
+      id: usuario.id,
+      username: usuario.username,
+      email: usuario.email || '',
+      first_name: usuario.first_name || '',
+      last_name: usuario.last_name || '',
       password: '',
-      groups: usuario.groups?.map((g) => g.id) || [],
+      groups: usuario.grupos?.map((g) => g.id) || [],
+      is_active: usuario.is_active,
+      is_staff: usuario.is_staff,
     }
   } else {
     form.value = {
@@ -219,17 +250,6 @@ const saveUsuario = async () => {
     loadUsuarios()
   } finally {
     saving.value = false
-  }
-}
-
-const deleteUsuario = async (usuario) => {
-  if (!(await confirm(`¿Eliminar usuario "${usuario.username}"?`))) return
-  try {
-    await api.delete(`base/usuarios/${usuario.id}/`)
-    notifySuccess('Usuario eliminado')
-    loadUsuarios()
-  } catch {
-    notifyError('Error al eliminar')
   }
 }
 

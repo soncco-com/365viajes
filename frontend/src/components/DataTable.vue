@@ -10,83 +10,110 @@
     binary-state-sort
     flat
     bordered
+    :grid="$q.screen.lt.md"
     class="data-table-custom"
+    :no-data-label="noDataLabel"
   >
     <!-- Slot para filtros personalizados -->
     <template v-slot:top>
-      <div class="row q-gutter-md full-width items-center">
-        <slot name="filters"></slot>
-
-        <q-space />
-
-        <!-- Buscador por defecto -->
-        <q-input
-          v-if="searchable"
-          v-model="filter"
-          dense
-          debounce="300"
-          placeholder="Buscar..."
-          outlined
+      <div class="row full-width items-center">
+        <div
+          class="col-12"
+          v-if="$slots.filters || searchable || $slots['top-right'] || createButton"
         >
-          <template v-slot:prepend>
-            <q-icon name="search" />
-          </template>
-        </q-input>
+          <div class="row q-col-gutter-md items-center">
+            <!-- Filtros personalizados -->
+            <div v-if="$slots.filters" class="col-12 col-md">
+              <slot name="filters"></slot>
+            </div>
 
-        <!-- Slot personalizado para botones en la parte superior derecha -->
-        <slot name="top-right"></slot>
+            <!-- Buscador por defecto -->
+            <div v-if="searchable" class="col-12 col-md-auto">
+              <q-input
+                v-model="filter"
+                dense
+                debounce="300"
+                placeholder="Buscar..."
+                outlined
+                style="min-width: 200px"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+            </div>
 
-        <!-- Botón de crear (si no se usa el slot top-right) -->
-        <q-btn
-          v-if="createButton && !$slots['top-right']"
-          color="primary"
-          icon="add"
-          :label="createLabel"
-          @click="$emit('create')"
-        />
+            <!-- Slot personalizado para botones en la parte superior derecha -->
+            <div v-if="$slots['top-right'] || createButton" class="col-12 col-md-auto">
+              <slot name="top-right">
+                <!-- Botón de crear (si no se usa el slot top-right) -->
+                <q-btn
+                  v-if="createButton"
+                  color="primary"
+                  icon="add"
+                  :label="$q.screen.gt.xs ? createLabel : ''"
+                  @click="$emit('create')"
+                  :class="$q.screen.xs ? 'full-width' : ''"
+                />
+              </slot>
+            </div>
+          </div>
+        </div>
       </div>
     </template>
 
-    <!-- Slot para acciones por fila -->
-    <template v-slot:body-cell-actions="props">
-      <q-td :props="props">
-        <slot name="actions" :row="props.row">
-          <q-btn-dropdown flat dense icon="more_vert" dropdown-icon="none">
-            <q-list>
-              <q-item
-                v-if="!props.row.hideEdit"
-                clickable
-                v-close-popup
-                @click="$emit('edit', props.row)"
-              >
-                <q-item-section avatar>
-                  <q-icon name="edit" color="primary" />
-                </q-item-section>
-                <q-item-section>Editar</q-item-section>
-              </q-item>
+    <!-- Vista GRID para móviles -->
+    <template v-slot:item="props">
+      <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
+        <q-card flat bordered>
+          <q-card-section>
+            <slot name="grid-item" :row="props.row" :cols="props.cols">
+              <!-- Layout por defecto si no se personaliza -->
+              <div v-for="col in props.cols.filter((c) => c.name !== 'actions')" :key="col.name">
+                <div class="text-caption text-grey-7">{{ col.label }}</div>
+                <div class="text-body2 q-mb-sm">
+                  <!-- Renderizar slots personalizados para badges/etc -->
+                  <component
+                    :is="$slots[`body-cell-${col.name}`] ? 'div' : col.format ? 'div' : 'span'"
+                  >
+                    <slot
+                      :name="`body-cell-${col.name}`"
+                      :row="props.row"
+                      :value="col.value"
+                      :props="{ row: props.row, value: col.value }"
+                    >
+                      {{ col.value }}
+                    </slot>
+                  </component>
+                </div>
+              </div>
+            </slot>
+          </q-card-section>
 
-              <q-item
-                v-if="!props.row.hideDelete"
-                clickable
-                v-close-popup
-                @click="$emit('delete', props.row)"
-              >
-                <q-item-section avatar>
-                  <q-icon name="delete" color="negative" />
-                </q-item-section>
-                <q-item-section>Eliminar</q-item-section>
-              </q-item>
+          <q-separator />
 
-              <slot name="extra-actions" :row="props.row"></slot>
-            </q-list>
-          </q-btn-dropdown>
-        </slot>
-      </q-td>
+          <q-card-actions align="right">
+            <!-- Renderizar los botones de acción del slot body-cell-actions -->
+            <slot name="body-cell-actions" :row="props.row" :rowIndex="props.rowIndex">
+              <q-btn flat dense round icon="edit" color="primary">
+                <q-tooltip>Editar</q-tooltip>
+              </q-btn>
+            </slot>
+          </q-card-actions>
+        </q-card>
+      </div>
     </template>
 
-    <!-- Slots para personalización de celdas -->
+    <!-- Slot para acciones por fila (tabla desktop) -->
+    <template v-slot:body-cell-actions="slotProps">
+      <slot name="body-cell-actions" v-bind="slotProps"></slot>
+    </template>
+
+    <!-- Slots para personalización de celdas (tabla desktop) -->
     <template
-      v-for="slot in Object.keys($slots).filter((name) => name.startsWith('body-cell-'))"
+      v-for="slot in Object.keys($slots).filter(
+        (name) => name.startsWith('body-cell-') && name !== 'body-cell-actions',
+      )"
       v-slot:[slot]="props"
     >
       <slot :name="slot" v-bind="props"></slot>
@@ -101,6 +128,9 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
 
 const props = defineProps({
   rows: {
@@ -130,6 +160,10 @@ const props = defineProps({
   showTotals: {
     type: Boolean,
     default: false,
+  },
+  noDataLabel: {
+    type: String,
+    default: 'No hay registros disponibles',
   },
   initialPagination: {
     type: Object,

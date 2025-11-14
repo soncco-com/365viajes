@@ -64,8 +64,12 @@
 import { ref, watch, nextTick } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
 
-// Configurar worker de PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`
+// Configurar worker de PDF.js usando el worker empaquetado
+// En lugar de usar CDN, usamos el worker del paquete instalado
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).href
 
 const props = defineProps({
   modelValue: {
@@ -106,55 +110,77 @@ const loadPdf = async () => {
 
   loading.value = true
   error.value = null
+  pdfDoc.value = null
 
   try {
-    let source
+    let pdfData
 
     if (props.pdfBlob) {
       const arrayBuffer = await props.pdfBlob.arrayBuffer()
-      source = { data: arrayBuffer }
+      pdfData = new Uint8Array(arrayBuffer)
     } else {
-      source = props.pdfUrl
+      pdfData = props.pdfUrl
     }
 
-    const loadingTask = pdfjsLib.getDocument(source)
-    pdfDoc.value = await loadingTask.promise
-    numPages.value = pdfDoc.value.numPages
+    const loadingTask = pdfjsLib.getDocument(pdfData)
+    
+    // Guardar el loadingTask en lugar del promise result
+    pdfDoc.value = loadingTask
+    
+    const pdf = await loadingTask.promise
+    numPages.value = pdf.numPages
 
+    // Esperar a que Vue renderice los canvas
     await nextTick()
-    await renderAllPages()
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    
+    await renderAllPages(pdf)
   } catch (err) {
     console.error('Error al cargar PDF:', err)
     error.value = 'Error al cargar el documento PDF'
+    pdfDoc.value = null
   } finally {
     loading.value = false
   }
 }
 
-const renderAllPages = async () => {
+const renderAllPages = async (pdf) => {
   for (let pageNum = 1; pageNum <= numPages.value; pageNum++) {
-    await renderPage(pageNum)
+    await renderPage(pdf, pageNum)
   }
 }
 
-const renderPage = async (pageNum) => {
-  const page = await pdfDoc.value.getPage(pageNum)
-  const canvas = pageCanvases.value[pageNum - 1]
+const renderPage = async (pdf, pageNum) => {
+  try {
+    const canvas = pageCanvases.value[pageNum - 1]
 
-  if (!canvas) return
+    if (!canvas) {
+      console.warn(`Canvas not found for page ${pageNum}`)
+      return
+    }
 
-  const viewport = page.getViewport({ scale: 1.5 })
-  const context = canvas.getContext('2d')
+    const context = canvas.getContext('2d')
 
-  canvas.height = viewport.height
-  canvas.width = viewport.width
+    if (!context) {
+      console.warn(`Context not available for page ${pageNum}`)
+      return
+    }
 
-  const renderContext = {
-    canvasContext: context,
-    viewport: viewport,
+    const page = await pdf.getPage(pageNum)
+    const viewport = page.getViewport({ scale: 1.5 })
+
+    canvas.height = viewport.height
+    canvas.width = viewport.width
+
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport,
+    }
+
+    await page.render(renderContext).promise
+  } catch (err) {
+    console.error(`Error rendering page ${pageNum}:`, err)
   }
-
-  await page.render(renderContext).promise
 }
 
 const zoomIn = () => {

@@ -7,11 +7,18 @@
     :rules="rules"
     :clearable="clearable"
     readonly
+    class="cursor-pointer"
+    @click="openCalendar"
   >
     <template v-slot:prepend>
       <q-icon name="event" class="cursor-pointer">
-        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-          <q-date v-model="model" @update:model-value="onUpdate" :mask="mask" :locale="locale">
+        <q-popup-proxy ref="popupRef" cover transition-show="scale" transition-hide="scale">
+          <q-date
+            v-model="model"
+            @update:model-value="onDateSelected"
+            :mask="mask"
+            :locale="locale"
+          >
             <div class="row items-center justify-end">
               <q-btn v-close-popup label="Cerrar" color="primary" flat />
             </div>
@@ -63,6 +70,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const model = ref(props.modelValue)
+const popupRef = ref(null)
+
+const openCalendar = () => {
+  if (popupRef.value) {
+    popupRef.value.show()
+  }
+}
 
 const formattedDate = computed(() => {
   if (!model.value) return ''
@@ -89,8 +103,11 @@ const locale = {
   firstDayOfWeek: 1,
 }
 
-const onUpdate = (value) => {
+const onDateSelected = (value) => {
   emit('update:modelValue', value)
+  if (popupRef.value) {
+    popupRef.value.hide()
+  }
 }
 
 // Sincronizar con v-model

@@ -5,10 +5,30 @@
     <q-card class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-3">
             <date-range-picker v-model="filters.fecha" label="Rango de fechas" />
           </div>
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-2">
+            <autocomplete-input
+              v-model="filters.servicio"
+              label="Servicio"
+              endpoint="base/servicios"
+              option-label="nombre"
+            />
+          </div>
+          <div class="col-12 col-md-2">
+            <q-select
+              v-model="filters.idioma"
+              :options="idiomaOptions"
+              label="Idioma"
+              outlined
+              dense
+              clearable
+              emit-value
+              map-options
+            />
+          </div>
+          <div class="col-12 col-md-2">
             <autocomplete-input
               v-model="filters.guia"
               label="Guía"
@@ -16,7 +36,7 @@
               option-label="nombre"
             />
           </div>
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-2">
             <autocomplete-input
               v-model="filters.chofer"
               label="Chofer"
@@ -24,7 +44,7 @@
               option-label="nombre"
             />
           </div>
-          <div class="col-12 col-md-2 flex items-center">
+          <div class="col-12 col-md-1 flex items-center">
             <q-btn
               color="primary"
               label="Buscar"
@@ -43,6 +63,7 @@
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
+      no-data-label="No se encontraron órdenes de servicio"
       class="q-mt-md"
     >
       <template v-slot:body-cell-actions="props">
@@ -56,60 +77,12 @@
         </q-td>
       </template>
     </data-table>
-
-    <q-dialog v-model="showDetailDialog" full-width>
-      <q-card>
-        <q-card-section>
-          <div class="text-h6">Orden de Servicio - {{ selectedOrden?.fecha }}</div>
-        </q-card-section>
-
-        <q-card-section v-if="selectedOrden">
-          <div class="row q-col-gutter-md">
-            <div class="col-4">
-              <div class="text-grey-7">Guía:</div>
-              <div class="text-subtitle1">{{ selectedOrden.guia?.nombre_completo }}</div>
-            </div>
-            <div class="col-4">
-              <div class="text-grey-7">Chofer:</div>
-              <div class="text-subtitle1">{{ selectedOrden.chofer?.nombre_completo }}</div>
-            </div>
-            <div class="col-4">
-              <div class="text-grey-7">Transporte:</div>
-              <div class="text-subtitle1">
-                {{ selectedOrden.transporte?.placa }} - {{ selectedOrden.transporte?.modelo }}
-              </div>
-            </div>
-          </div>
-
-          <q-separator class="q-my-md" />
-
-          <div class="text-subtitle1 q-mb-md">Detalles de Reservas</div>
-          <q-table
-            :rows="selectedOrden.detalles || []"
-            :columns="detalleColumns"
-            row-key="id"
-            flat
-            bordered
-          >
-            <template v-slot:body-cell-servicio="props">
-              <q-td :props="props">{{ props.row.servicio?.nombre }}</q-td>
-            </template>
-            <template v-slot:body-cell-lugar="props">
-              <q-td :props="props">{{ props.row.lugar?.nombre }}</q-td>
-            </template>
-          </q-table>
-        </q-card-section>
-
-        <q-card-actions align="right">
-          <q-btn label="Cerrar" color="primary" flat @click="showDetailDialog = false" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
@@ -117,35 +90,78 @@ import DataTable from 'src/components/DataTable.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 
+const router = useRouter()
 const api = useApi()
 const { notifySuccess, notifyError, confirm } = useNotify()
 
 const ordenes = ref([])
 const loading = ref(false)
-const showDetailDialog = ref(false)
-const selectedOrden = ref(null)
-const filters = ref({ fecha: { from: null, to: null }, guia: null, chofer: null })
+const filters = ref({
+  fecha: { desde: null, hasta: null },
+  servicio: null,
+  idioma: null,
+  guia: null,
+  chofer: null,
+})
+
+const idiomaOptions = [
+  { label: 'Español', value: 'es' },
+  { label: 'Inglés', value: 'en' },
+  { label: 'Bilingüe', value: 'xx' },
+]
 
 const columns = [
-  { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left', sortable: true },
-  { name: 'guia', label: 'Guía', field: (row) => row.guia?.nombre_completo, align: 'left' },
-  { name: 'chofer', label: 'Chofer', field: (row) => row.chofer?.nombre_completo, align: 'left' },
-  { name: 'transporte', label: 'Transporte', field: (row) => row.transporte?.placa, align: 'left' },
   {
-    name: 'detalles',
-    label: 'Servicios',
+    name: 'id',
+    label: 'ID',
+    field: 'id',
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'fecha',
+    label: 'Fecha',
+    field: 'fecha',
+    align: 'left',
+    sortable: true,
+    format: (val) => {
+      if (!val) return ''
+      const [year, month, day] = val.split('-')
+      return `${day}/${month}/${year}`
+    },
+  },
+  {
+    name: 'servicio',
+    label: 'Servicio',
+    field: 'servicio_nombre',
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'idioma',
+    label: 'Idioma',
+    field: 'idioma_display',
+    align: 'center',
+  },
+  {
+    name: 'guia',
+    label: 'Guía',
+    field: 'guia_nombre',
+    align: 'left',
+  },
+  {
+    name: 'chofer',
+    label: 'Chofer',
+    field: 'chofer_nombre',
+    align: 'left',
+  },
+  {
+    name: 'cant_servicios',
+    label: 'Cant. Servicios',
     field: (row) => row.detalles?.length || 0,
     align: 'center',
   },
   { name: 'actions', label: 'Acciones', field: 'actions', align: 'center' },
-]
-
-const detalleColumns = [
-  { name: 'reserva', label: 'Reserva', field: (row) => row.reserva?.numero, align: 'left' },
-  { name: 'servicio', label: 'Servicio', field: 'servicio', align: 'left' },
-  { name: 'lugar', label: 'Lugar', field: 'lugar', align: 'left' },
-  { name: 'numero_pax', label: 'PAX', field: 'numero_pax', align: 'center' },
-  { name: 'horario', label: 'Horario', field: 'horario', align: 'left' },
 ]
 
 const pagination = ref({
@@ -166,15 +182,21 @@ const loadOrdenes = async (props) => {
       ordering: (descending ? '-' : '') + sortBy,
     }
 
-    if (filters.value.fecha.from && filters.value.fecha.to) {
-      params.fecha__gte = filters.value.fecha.from
-      params.fecha__lte = filters.value.fecha.to
+    if (filters.value.fecha.desde && filters.value.fecha.hasta) {
+      params.fecha__gte = filters.value.fecha.desde
+      params.fecha__lte = filters.value.fecha.hasta
+    }
+    if (filters.value.servicio) {
+      params.servicio = filters.value.servicio?.id || filters.value.servicio
+    }
+    if (filters.value.idioma) {
+      params.idioma = filters.value.idioma
     }
     if (filters.value.guia) {
-      params.guia = filters.value.guia.id
+      params.guia = filters.value.guia?.id || filters.value.guia
     }
     if (filters.value.chofer) {
-      params.chofer = filters.value.chofer.id
+      params.chofer = filters.value.chofer?.id || filters.value.chofer
     }
 
     const response = await api.get('reservas/ordenes-servicio/', { params })
@@ -197,8 +219,7 @@ const loadOrdenes = async (props) => {
 const onRequest = (props) => loadOrdenes(props)
 
 const viewOrden = (orden) => {
-  selectedOrden.value = orden
-  showDetailDialog.value = true
+  router.push(`/informes/ordenes-servicio/${orden.id}`)
 }
 
 const deleteOrden = async (orden) => {
@@ -220,7 +241,7 @@ const deleteOrden = async (orden) => {
 
 onMounted(() => {
   const today = new Date().toISOString().split('T')[0]
-  filters.value.fecha = { from: today, to: today }
+  filters.value.fecha = { desde: today, hasta: today }
   loadOrdenes()
 })
 </script>
