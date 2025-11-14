@@ -123,17 +123,17 @@ const loadPdf = async () => {
     }
 
     const loadingTask = pdfjsLib.getDocument(pdfData)
-    
+
     // Guardar el loadingTask en lugar del promise result
     pdfDoc.value = loadingTask
-    
+
     const pdf = await loadingTask.promise
     numPages.value = pdf.numPages
 
     // Esperar a que Vue renderice los canvas
     await nextTick()
     await new Promise((resolve) => setTimeout(resolve, 200))
-    
+
     await renderAllPages(pdf)
   } catch (err) {
     console.error('Error al cargar PDF:', err)
