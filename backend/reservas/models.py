@@ -60,6 +60,18 @@ class ReservaDetalle(models.Model):
     idioma = models.CharField(max_length=2, choices=IDIOMAS, default='es')
     total = models.DecimalField(
         max_digits=11, decimal_places=2, default=Decimal('0.00'))
+    destino = models.CharField(
+        max_length=255, null=True, blank=True,
+        help_text='Destino final del servicio si el servicio lo requiere'
+    )
+    precio_aplicado = models.DecimalField(
+        max_digits=11, decimal_places=2, null=True, blank=True,
+        help_text='Precio unitario que se aplicó (puede ser precio especial)'
+    )
+    observacion_precio = models.CharField(
+        max_length=255, null=True, blank=True,
+        help_text='Observación sobre el precio aplicado (ej: "Precio especial para agencia X")'
+    )
 
     def __str__(self):
         return '%s pertenece a %s' % (self.servicio.nombre, self.pertenece_a.id)

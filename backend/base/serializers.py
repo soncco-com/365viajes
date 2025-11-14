@@ -5,7 +5,8 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
     OpcionGeneral, Auditoria, Lugar, Formato, Servicio,
-    Adicional, Cliente, Horario, Guia, Chofer
+    Adicional, Cliente, Horario, Guia, Chofer,
+    ServicioPrecioEspecial, ServicioParada
 )
 
 
@@ -42,13 +43,37 @@ class FormatoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ServicioParadaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServicioParada
+        fields = '__all__'
+
+
+class ServicioPrecioEspecialSerializer(serializers.ModelSerializer):
+    servicio_nombre = serializers.CharField(
+        source='servicio.nombre', read_only=True)
+    cliente_nombre = serializers.CharField(
+        source='cliente.nombre', read_only=True)
+
+    class Meta:
+        model = ServicioPrecioEspecial
+        fields = '__all__'
+
+
 class ServicioSerializer(serializers.ModelSerializer):
     formato_nombre = serializers.CharField(
         source='formato.nombre', read_only=True)
+    paradas = ServicioParadaSerializer(many=True, read_only=True)
+    precios_especiales_activos = serializers.SerializerMethodField()
 
     class Meta:
         model = Servicio
         fields = '__all__'
+
+    def get_precios_especiales_activos(self, obj):
+        """Devuelve solo los precios especiales activos"""
+        precios = obj.precios_especiales.filter(activo=True)
+        return ServicioPrecioEspecialSerializer(precios, many=True).data
 
 
 class AdicionalSerializer(serializers.ModelSerializer):

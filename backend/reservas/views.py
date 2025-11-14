@@ -33,8 +33,15 @@ class ReservaViewSet(viewsets.ModelViewSet):
     serializer_class = ReservaSerializer
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['cliente', 'estado',
-                        'tipo_documento', 'tipo_pago', 'fecha']
+    filterset_fields = {
+        'cliente': ['exact'],
+        'estado': ['exact'],
+        'tipo_documento': ['exact'],
+        'tipo_pago': ['exact'],
+        'fecha': ['exact', 'gte', 'lte'],
+        'girado_por': ['exact'],
+        'girado_cuando': ['exact', 'gte', 'lte', 'date'],
+    }
     search_fields = ['pasajero', 'numero', 'numero_factura', 'observaciones']
     ordering_fields = '__all__'
     ordering = ['-fecha']

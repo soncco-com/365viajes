@@ -36,7 +36,8 @@ class ReservaDetalleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReservaDetalle
         fields = ['id', 'servicio', 'recoger_en', 'cuando',
-                  'idioma', 'numero_pax', 'total', 'seleccionado']
+                  'idioma', 'numero_pax', 'total', 'seleccionado',
+                  'destino', 'precio_aplicado', 'observacion_precio']
 
 
 class ReservaAdicionalDetalleSerializer(serializers.ModelSerializer):
@@ -82,6 +83,7 @@ class ReservaSerializer(serializers.ModelSerializer):
         source='creado_por.first_name', read_only=True)
     girado_por_nombre = serializers.CharField(
         source='girado_por.first_name', read_only=True)
+    fecha_primer_servicio = serializers.SerializerMethodField()
 
     # Nested serializers para detalles
     detalles = ReservaDetalleSerializer(
@@ -94,6 +96,11 @@ class ReservaSerializer(serializers.ModelSerializer):
         many=True, write_only=True, required=False)
     adicionales_data = ReservaAdicionalDetalleWriteSerializer(
         many=True, write_only=True, required=False)
+
+    def get_fecha_primer_servicio(self, obj):
+        """Retorna la fecha del primer servicio de la reserva"""
+        primer_detalle = obj.reservadetalle_set.order_by('cuando').first()
+        return primer_detalle.cuando if primer_detalle else None
 
     class Meta:
         model = Reserva

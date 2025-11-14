@@ -12,13 +12,15 @@ from django.utils.decorators import method_decorator
 
 from .models import (
     OpcionGeneral, Auditoria, Lugar, Formato, Servicio,
-    Adicional, Cliente, Horario, Guia, Chofer
+    Adicional, Cliente, Horario, Guia, Chofer,
+    ServicioPrecioEspecial, ServicioParada
 )
 from .serializers import (
     OpcionGeneralSerializer, AuditoriaSerializer, LugarSerializer,
     FormatoSerializer, ServicioSerializer, AdicionalSerializer,
     ClienteSerializer, HorarioSerializer, GuiaSerializer,
-    ChoferSerializer, UserSerializer
+    ChoferSerializer, UserSerializer,
+    ServicioPrecioEspecialSerializer, ServicioParadaSerializer
 )
 
 
@@ -216,3 +218,28 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
         groups = Group.objects.all()
         data = [{'id': g.id, 'name': g.name} for g in groups]
         return Response(data)
+
+
+class ServicioPrecioEspecialViewSet(viewsets.ModelViewSet):
+    """ViewSet para Precios Especiales de Servicios"""
+    queryset = ServicioPrecioEspecial.objects.select_related(
+        'servicio', 'cliente').all()
+    serializer_class = ServicioPrecioEspecialSerializer
+    filter_backends = [DjangoFilterBackend,
+                       filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['servicio', 'cliente', 'activo']
+    search_fields = ['servicio__nombre', 'cliente__nombre', 'observaciones']
+    ordering_fields = '__all__'
+    ordering = ['-fecha_desde']
+
+
+class ServicioParadaViewSet(viewsets.ModelViewSet):
+    """ViewSet para Paradas de Servicios"""
+    queryset = ServicioParada.objects.select_related('servicio').all()
+    serializer_class = ServicioParadaSerializer
+    filter_backends = [DjangoFilterBackend,
+                       filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['servicio']
+    search_fields = ['nombre', 'descripcion']
+    ordering_fields = '__all__'
+    ordering = ['servicio', 'orden']

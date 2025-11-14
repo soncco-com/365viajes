@@ -7,7 +7,8 @@ from .views import (
     OpcionGeneralViewSet, AuditoriaViewSet, LugarViewSet,
     FormatoViewSet, ServicioViewSet, AdicionalViewSet,
     ClienteViewSet, HorarioViewSet, GuiaViewSet,
-    ChoferViewSet, UserViewSet, GroupViewSet
+    ChoferViewSet, UserViewSet, GroupViewSet,
+    ServicioPrecioEspecialViewSet, ServicioParadaViewSet
 )
 
 router = DefaultRouter()
@@ -24,6 +25,10 @@ router.register(r'guias', GuiaViewSet, basename='guia')
 router.register(r'choferes', ChoferViewSet, basename='chofer')
 router.register(r'usuarios', UserViewSet, basename='usuario')
 router.register(r'grupos', GroupViewSet, basename='grupo')
+router.register(r'servicio-precios-especiales',
+                ServicioPrecioEspecialViewSet, basename='servicio-precio-especial')
+router.register(r'servicio-paradas', ServicioParadaViewSet,
+                basename='servicio-parada')
 
 urlpatterns = [
     path('', include(router.urls)),

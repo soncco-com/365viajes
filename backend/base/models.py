@@ -77,9 +77,59 @@ class Servicio(models.Model):
     activo = models.BooleanField(default=True)
     formato = models.ForeignKey(Formato, on_delete=models.PROTECT)
     cantidad_carrito = models.IntegerField(default=20)
+    mostrar_destinos = models.BooleanField(
+        default=False,
+        help_text='Si está activo, al agregar este servicio en una reserva se solicitará un destino'
+    )
 
     def __str__(self):
         return '%s (%s)' % (self.nombre, self.fecha_precio.strftime('%m/%Y'))
+
+
+class ServicioPrecioEspecial(models.Model):
+    """Precios especiales de servicios para agencias específicas"""
+    servicio = models.ForeignKey(
+        Servicio, on_delete=models.CASCADE, related_name='precios_especiales')
+    cliente = models.ForeignKey(
+        'Cliente', on_delete=models.CASCADE, related_name='precios_especiales')
+    precio = models.DecimalField(
+        max_digits=11, decimal_places=2,
+        help_text='Precio especial para esta agencia'
+    )
+    activo = models.BooleanField(default=True)
+    fecha_desde = models.DateField(
+        help_text='Fecha desde la cual aplica este precio')
+    fecha_hasta = models.DateField(
+        null=True, blank=True, help_text='Fecha hasta la cual aplica (opcional)')
+    observaciones = models.TextField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Precio Especial de Servicio'
+        verbose_name_plural = 'Precios Especiales de Servicios'
+        unique_together = ['servicio', 'cliente']
+        ordering = ['-fecha_desde']
+
+    def __str__(self):
+        return f'{self.servicio.nombre} - {self.cliente.nombre}: S/ {self.precio}'
+
+
+class ServicioParada(models.Model):
+    """Paradas o itinerario que hace un servicio"""
+    servicio = models.ForeignKey(
+        Servicio, on_delete=models.CASCADE, related_name='paradas')
+    nombre = models.CharField(max_length=255, help_text='Nombre de la parada')
+    orden = models.IntegerField(default=0, help_text='Orden en el itinerario')
+    descripcion = models.TextField(
+        null=True, blank=True, help_text='Descripción opcional de la parada')
+
+    class Meta:
+        verbose_name = 'Parada de Servicio'
+        verbose_name_plural = 'Paradas de Servicios'
+        ordering = ['servicio', 'orden']
+        unique_together = ['servicio', 'nombre']
+
+    def __str__(self):
+        return f'{self.servicio.nombre} - {self.nombre}'
 
 
 class Adicional(models.Model):
