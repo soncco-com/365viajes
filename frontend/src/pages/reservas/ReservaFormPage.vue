@@ -210,13 +210,24 @@
                         dense
                         outlined
                         min="1"
-                        class="q-mb-sm"
+                        class="q-mb-md"
                         @update:model-value="calcularSubtotalServicio(detalle)"
                       >
                         <template v-slot:prepend>
                           <q-icon name="people" />
                         </template>
                       </q-input>
+
+                      <date-picker
+                        v-model="detalle.cuando"
+                        label="Fecha del servicio *"
+                        dense
+                        class="q-mb-sm"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="event" />
+                        </template>
+                      </date-picker>
 
                       <div
                         v-if="detalle.observacion_precio"
@@ -338,6 +349,17 @@
                           <q-icon name="tag" />
                         </template>
                       </q-input>
+
+                      <date-picker
+                        v-model="adicional.cuando"
+                        label="Fecha del adicional *"
+                        dense
+                        class="q-mb-md"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="event" />
+                        </template>
+                      </date-picker>
 
                       <div>
                         <q-checkbox
@@ -573,7 +595,7 @@ const reserva = ref({
   pasajero: '',
   estado: '1',
   tipo_pago: null,
-  tipo_documento: null,
+  tipo_documento: '2',
   total: 0,
   observaciones: '',
   detalles: [],
@@ -691,7 +713,7 @@ async function onServicioChange(detalle) {
         const precioEspecial = parseFloat(precioVigente.precio)
         const ahorro = precioNormal - precioEspecial
         const porcentaje = ((ahorro / precioNormal) * 100).toFixed(1)
-        
+
         detalle.precio_aplicado = precioEspecial
         detalle.observacion_precio = `Precio especial para ${reserva.value.cliente.nombre} (S/ ${precioNormal.toFixed(2)} → S/ ${precioEspecial.toFixed(2)}, ahorro: ${porcentaje}%)${
           precioVigente.observaciones ? ' - ' + precioVigente.observaciones : ''
@@ -725,9 +747,14 @@ function calcularSubtotalServicio(detalle) {
 function calcularSubtotalAdicional(adicional) {
   if (adicional.adicional?.precio && adicional.cantidad) {
     adicional.total = parseFloat(adicional.adicional.precio) * parseInt(adicional.cantidad)
+    // Copiar el valor de contable del adicional seleccionado
+    if (adicional.adicional.contable !== undefined) {
+      adicional.contable = adicional.adicional.contable
+    }
   } else {
     adicional.total = 0
   }
+  calcularTotal()
 }
 
 function addServicio() {
@@ -738,6 +765,7 @@ function addServicio() {
     recoger_en: null,
     idioma: { value: 'es', label: 'Español' },
     numero_pax: 1,
+    cuando: reserva.value.fecha || null,
     precio_aplicado: null,
     observacion_precio: '',
     total: 0,
@@ -755,6 +783,7 @@ function addAdicional() {
     id: Date.now(),
     adicional: null,
     cantidad: 1,
+    cuando: reserva.value.fecha || null,
     contable: true,
     total: 0,
   })
@@ -796,12 +825,14 @@ async function loadReserva() {
         servicio: servicioRes?.data || null,
         destino: detalle.destino || null,
         recoger_en: lugarRes?.data || null,
+        cuando: detalle.cuando || null,
         idioma: idiomaOptions.find((opt) => opt.value === detalle.idioma) || {
           value: 'es',
           label: 'Español',
         },
         precio_aplicado: detalle.precio_aplicado || null,
         observacion_precio: detalle.observacion_precio || '',
+        seleccionado: detalle.seleccionado || false, // Preservar el estado de selección
       }
     })
 
@@ -814,6 +845,9 @@ async function loadReserva() {
       return {
         ...adicional,
         adicional: adicionalRes?.data || null,
+        cuando: adicional.cuando || null,
+        // Copiar el valor de contable del adicional
+        contable: adicionalRes?.data?.contable !== undefined ? adicionalRes.data.contable : true,
       }
     })
 
@@ -854,24 +888,28 @@ async function saveReserva() {
       detalles_data: reserva.value.detalles
         .filter((detalle) => detalle.servicio?.id && detalle.recoger_en?.id)
         .map((detalle) => ({
-          ...(detalle.id && { id: parseInt(detalle.id) }), // Incluir ID si existe (para edición)
+          ...(detalle.id &&
+            typeof detalle.id === 'number' &&
+            detalle.id < 1000000000000 && { id: parseInt(detalle.id) }), // Incluir ID solo si es válido (no temporal)
           servicio: parseInt(detalle.servicio.id),
           destino: detalle.destino || null,
           recoger_en: parseInt(detalle.recoger_en.id),
-          cuando: reserva.value.fecha,
+          cuando: detalle.cuando || reserva.value.fecha,
           idioma: detalle.idioma?.value || detalle.idioma || 'es',
           numero_pax: parseInt(detalle.numero_pax) || 1,
           precio_aplicado: detalle.precio_aplicado ? parseFloat(detalle.precio_aplicado) : null,
           observacion_precio: detalle.observacion_precio || '',
           total: parseFloat(detalle.total) || 0,
-          seleccionado: detalle.seleccionado || false,
+          seleccionado: Boolean(detalle.seleccionado), // Preservar valor exacto, no forzar a false
         })),
       adicionales_data: reserva.value.adicionales
         .filter((adicional) => adicional.adicional?.id)
         .map((adicional) => ({
-          ...(adicional.id && { id: parseInt(adicional.id) }), // Incluir ID si existe (para edición)
+          ...(adicional.id &&
+            typeof adicional.id === 'number' &&
+            adicional.id < 1000000000000 && { id: parseInt(adicional.id) }), // Incluir ID solo si es válido (no temporal)
           adicional: parseInt(adicional.adicional.id),
-          cuando: reserva.value.fecha,
+          cuando: adicional.cuando || reserva.value.fecha,
           cantidad: parseInt(adicional.cantidad) || 1,
           total: parseFloat(adicional.total) || 0,
         })),
@@ -988,6 +1026,10 @@ function validarServicios() {
       errores.push(`Servicio #${numero}: El número de PAX debe ser mayor a 0`)
     }
 
+    if (!detalle.cuando) {
+      errores.push(`Servicio #${numero}: Debe seleccionar la fecha del servicio`)
+    }
+
     // Validar destino solo si el servicio lo requiere
     if (detalle.servicio?.mostrar_destinos && (!detalle.destino || detalle.destino.trim() === '')) {
       errores.push(`Servicio #${numero}: Debe especificar el destino final`)
@@ -1009,6 +1051,10 @@ function validarAdicionales() {
 
     if (!adicional.cantidad || adicional.cantidad < 1) {
       errores.push(`Adicional #${numero}: La cantidad debe ser mayor a 0`)
+    }
+
+    if (!adicional.cuando) {
+      errores.push(`Adicional #${numero}: Debe seleccionar la fecha del adicional`)
     }
   })
 

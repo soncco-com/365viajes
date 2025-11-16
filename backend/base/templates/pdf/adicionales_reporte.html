@@ -1,0 +1,116 @@
+{% extends 'pdf/base.html' %} {% block title %}Informe de Adicionales{% endblock
+%} {% block content %}
+<div
+  style="
+    background-color: #f0f0f0;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 3px;
+  "
+>
+  <h2 style="margin: 0; font-size: 14pt; text-align: center">
+    INFORME DE ADICIONALES VENDIDOS
+  </h2>
+</div>
+
+<table class="no-border" style="margin-bottom: 10px; font-size: 9pt">
+  <tr>
+    <td class="no-border" width="25%"><strong>Adicional:</strong></td>
+    <td class="no-border" width="75%">{{ adicional_nombre }}</td>
+  </tr>
+  <tr>
+    <td class="no-border"><strong>Período:</strong></td>
+    <td class="no-border">
+      {{ fecha_desde|date:'d/m/Y' }} - {{ fecha_hasta|date:'d/m/Y' }}
+    </td>
+  </tr>
+  <tr>
+    <td class="no-border"><strong>Cantidad Total:</strong></td>
+    <td class="no-border">{{ cantidad_total }} unidades</td>
+  </tr>
+</table>
+
+<h3
+  style="
+    margin: 8px 0 5px 0;
+    font-size: 11pt;
+    background-color: #e8e8e8;
+    padding: 4px 8px;
+    border-radius: 2px;
+  "
+>
+  Detalle de Ventas ({{ adicionales|length }} registros)
+</h3>
+<table style="font-size: 8pt">
+  <thead>
+    <tr>
+      <th width="10%">Fecha</th>
+      <th width="8%">Reserva</th>
+      <th width="25%">Pasajero</th>
+      <th width="25%">Adicional</th>
+      <th width="8%">Cant.</th>
+      <th width="10%">Precio Unit.</th>
+      <th width="7%">Tipo</th>
+      <th class="text-right" width="7%">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for adicional in adicionales %}
+    <tr>
+      <td class="text-center">{{ adicional.cuando|date:'d/m/Y' }}</td>
+      <td class="text-center">{{ adicional.reserva_id }}</td>
+      <td>{{ adicional.reserva_pasajero }}</td>
+      <td>{{ adicional.adicional_nombre }}</td>
+      <td class="text-center">{{ adicional.cantidad }}</td>
+      <td class="text-right">
+        S/ {{ adicional.adicional_precio|floatformat:2 }}
+      </td>
+      <td class="text-center" style="font-size: 7pt">
+        {% if adicional.adicional_contable %}Cont.{% else %}No Cont.{% endif %}
+      </td>
+      <td class="text-right">S/ {{ adicional.total|floatformat:2 }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div
+  style="
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 3px;
+  "
+>
+  <table class="no-border" style="font-size: 10pt; width: 100%">
+    <tr>
+      <td class="no-border" width="50%">
+        <strong>Total Contable:</strong>
+      </td>
+      <td class="no-border text-right" width="50%" style="color: #28a745">
+        <strong>S/ {{ total_contable|floatformat:2 }}</strong>
+      </td>
+    </tr>
+    <tr>
+      <td class="no-border">
+        <strong>Total No Contable:</strong>
+      </td>
+      <td class="no-border text-right" style="color: #ffc107">
+        <strong>S/ {{ total_no_contable|floatformat:2 }}</strong>
+      </td>
+    </tr>
+    <tr style="border-top: 2px solid #dee2e6">
+      <td class="no-border" style="padding-top: 8px">
+        <strong>TOTAL GENERAL:</strong>
+      </td>
+      <td
+        class="no-border text-right"
+        style="padding-top: 8px; font-size: 14pt"
+      >
+        <strong>S/ {{ total_general|floatformat:2 }}</strong>
+      </td>
+    </tr>
+  </table>
+</div>
+{% endblock %}

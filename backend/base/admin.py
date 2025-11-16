@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
-    OpcionGeneral, Auditoria, Lugar, Formato, Servicio,
-    Adicional, Cliente, Horario, Guia, Chofer
+    OpcionGeneral, Auditoria, Lugar, Servicio,
+    Adicional, Cliente, Chofer, Guia, Horario, Responsable
 )
 
 
@@ -28,16 +28,10 @@ class LugarAdmin(admin.ModelAdmin):
     search_fields = ['nombre']
 
 
-@admin.register(Formato)
-class FormatoAdmin(admin.ModelAdmin):
-    list_display = ['nombre']
-    search_fields = ['nombre']
-
-
 @admin.register(Servicio)
 class ServicioAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'precio', 'fecha_precio', 'activo', 'formato']
-    list_filter = ['activo', 'formato']
+    list_display = ['nombre', 'precio', 'fecha_precio', 'activo']
+    list_filter = ['activo']
     search_fields = ['nombre']
 
 
@@ -71,4 +65,11 @@ class GuiaAdmin(admin.ModelAdmin):
 @admin.register(Chofer)
 class ChoferAdmin(admin.ModelAdmin):
     list_display = ['nombre', 'telefono']
+    search_fields = ['nombre']
+
+
+@admin.register(Responsable)
+class ResponsableAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'telefono', 'activo']
+    list_filter = ['activo']
     search_fields = ['nombre']

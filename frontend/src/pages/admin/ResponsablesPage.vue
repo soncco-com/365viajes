@@ -1,38 +1,36 @@
 <template>
   <q-page class="q-pa-md">
-    <page-title title="Servicios" subtitle="Catálogo de servicios y tours" />
+    <page-title title="Responsables" subtitle="Catálogo de responsables de órdenes de servicio" />
 
     <!-- Filtros -->
     <q-card flat bordered class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-6">
             <q-input
               v-model="filters.search"
               label="Buscar"
               placeholder="Buscar por nombre"
-              fill-input
               outlined
               dense
               clearable
-              @keyup.enter="loadServicios"
+              @keyup.enter="loadResponsables"
             >
               <template v-slot:prepend>
                 <q-icon name="search" />
               </template>
             </q-input>
           </div>
-          <div class="col-12 col-md-2">
+          <div class="col-12 col-md-3">
             <q-select
               v-model="filters.activo"
-              label="Estado"
               :options="estadoOptions"
-              emit-value
-              map-options
-              clearable
-              fill-input
+              label="Estado"
               outlined
               dense
+              clearable
+              emit-value
+              map-options
             />
           </div>
           <div class="col-12 col-md-3">
@@ -40,7 +38,7 @@
               color="primary"
               icon="search"
               label="Buscar"
-              @click="loadServicios"
+              @click="loadResponsables"
               class="full-width"
             />
           </div>
@@ -50,41 +48,22 @@
 
     <!-- Tabla -->
     <data-table
-      :rows="servicios"
+      :rows="responsables"
       :columns="columns"
       :loading="loading"
       :pagination="pagination"
       @request="onRequest"
-      create-button
-      create-label="Nuevo Servicio"
-      @create="showFormDialog = true"
-      no-data-label="No hay servicios registrados"
+      no-data-label="No hay responsables registrados"
       class="q-mt-md"
     >
       <template v-slot:top-right>
         <q-btn
           color="primary"
           icon="add"
-          :label="$q.screen.gt.xs ? 'Nuevo Servicio' : ''"
+          :label="$q.screen.gt.xs ? 'Nuevo Responsable' : ''"
           @click="openDialog()"
           :class="$q.screen.xs ? 'full-width' : ''"
         />
-      </template>
-
-      <template v-slot:body-cell-precio="props">
-        <q-td :props="props">
-          <span class="text-weight-bold"
-            >S/ {{ parseFloat(props.row.precio || 0).toFixed(2) }}</span
-          >
-        </q-td>
-      </template>
-
-      <template v-slot:body-cell-mostrar_destinos="props">
-        <q-td :props="props">
-          <q-badge :color="props.row.mostrar_destinos ? 'info' : 'grey'">
-            {{ props.row.mostrar_destinos ? 'Sí' : 'No' }}
-          </q-badge>
-        </q-td>
       </template>
 
       <template v-slot:body-cell-activo="props">
@@ -106,57 +85,24 @@
 
     <!-- Dialog de formulario -->
     <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs">
-      <q-card :style="$q.screen.gt.xs ? 'min-width: 700px; max-width: 700px' : ''">
+      <q-card :style="$q.screen.gt.xs ? 'min-width: 600px; max-width: 600px' : ''">
         <q-card-section>
-          <div class="text-h6">{{ isEditing ? 'Editar Servicio' : 'Nuevo Servicio' }}</div>
+          <div class="text-h6">{{ isEditing ? 'Editar Responsable' : 'Nuevo Responsable' }}</div>
         </q-card-section>
 
         <q-card-section class="q-pa-md">
-          <q-form @submit="saveServicio">
-            <div class="row q-col-gutter-md">
-              <div class="col-12 col-md-8">
-                <q-input
-                  v-model="form.nombre"
-                  label="Nombre del Servicio *"
-                  outlined
-                  dense
-                  :rules="[(val) => !!val || 'El nombre es requerido']"
-                />
-              </div>
+          <q-form @submit="saveResponsable" class="q-gutter-md">
+            <q-input
+              v-model="form.nombre"
+              label="Nombre *"
+              outlined
+              dense
+              :rules="[(val) => !!val || 'El nombre es requerido']"
+            />
 
-              <div class="col-12 col-md-4">
-                <q-input
-                  v-model.number="form.precio"
-                  label="Precio *"
-                  type="number"
-                  outlined
-                  dense
-                  prefix="S/"
-                  step="0.01"
-                  :rules="[(val) => val > 0 || 'El precio debe ser mayor a 0']"
-                />
-              </div>
+            <q-input v-model="form.telefono" label="Teléfono" outlined dense />
 
-              <div class="col-12 col-md-4">
-                <date-picker
-                  v-model="form.fecha_precio"
-                  label="Fecha de Precio *"
-                  :rules="[(val) => !!val || 'La fecha es requerida']"
-                />
-              </div>
-
-              <div class="col-12 col-md-4">
-                <q-toggle v-model="form.activo" label="Activo" />
-              </div>
-
-              <div class="col-12">
-                <q-toggle
-                  v-model="form.mostrar_destinos"
-                  label="Mostrar campo destino en reservas"
-                  hint="Permite especificar el destino final al crear reservas"
-                />
-              </div>
-            </div>
+            <q-checkbox v-model="form.activo" label="Activo" />
 
             <div class="row q-gutter-sm justify-end q-mt-md">
               <q-btn label="Cancelar" color="grey" flat @click="showDialog = false" />
@@ -182,13 +128,12 @@ import { useNotify } from 'src/composables/useNotify'
 import { useQuasar } from 'quasar'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
-import DatePicker from 'src/components/DatePicker.vue'
 
 const $q = useQuasar()
 const api = useApi()
 const { notifySuccess, notifyError } = useNotify()
 
-const servicios = ref([])
+const responsables = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
 const saving = ref(false)
@@ -200,15 +145,13 @@ const filters = ref({
 })
 
 const estadoOptions = [
-  { label: 'Activo', value: true },
-  { label: 'Inactivo', value: false },
+  { label: 'Activo', value: 'true' },
+  { label: 'Inactivo', value: 'false' },
 ]
 
 const form = ref({
   nombre: '',
-  precio: 0,
-  fecha_precio: new Date().toISOString().split('T')[0],
-  mostrar_destinos: false,
+  telefono: '',
   activo: true,
 })
 
@@ -221,18 +164,10 @@ const columns = [
     sortable: true,
   },
   {
-    name: 'precio',
-    label: 'Precio',
-    field: 'precio',
-    align: 'right',
-    sortable: true,
-  },
-  {
-    name: 'mostrar_destinos',
-    label: 'Requiere Destino',
-    field: 'mostrar_destinos',
-    align: 'center',
-    sortable: true,
+    name: 'telefono',
+    label: 'Teléfono',
+    field: 'telefono',
+    align: 'left',
   },
   {
     name: 'activo',
@@ -257,7 +192,7 @@ const pagination = ref({
   rowsNumber: 0,
 })
 
-const loadServicios = async (props) => {
+const loadResponsables = async (props) => {
   loading.value = true
 
   try {
@@ -273,20 +208,20 @@ const loadServicios = async (props) => {
       params.search = filters.value.search
     }
 
-    if (filters.value.activo !== null && filters.value.activo !== undefined) {
+    if (filters.value.activo !== null) {
       params.activo = filters.value.activo
     }
 
-    const response = await api.get('base/servicios/', { params })
+    const response = await api.get('base/responsables/', { params })
 
-    servicios.value = response.data.results
+    responsables.value = response.data.results
     pagination.value.page = page
     pagination.value.rowsPerPage = rowsPerPage
     pagination.value.sortBy = sortBy
     pagination.value.descending = descending
     pagination.value.rowsNumber = response.data.count
   } catch (error) {
-    notifyError('Error al cargar los servicios')
+    notifyError('Error al cargar los responsables')
     console.error(error)
   } finally {
     loading.value = false
@@ -294,57 +229,46 @@ const loadServicios = async (props) => {
 }
 
 const onRequest = (props) => {
-  loadServicios(props)
+  loadResponsables(props)
 }
 
-const openDialog = (servicio = null) => {
-  if (servicio) {
+const openDialog = (responsable = null) => {
+  if (responsable) {
     isEditing.value = true
-    form.value = {
-      id: servicio.id,
-      nombre: servicio.nombre,
-      precio: parseFloat(servicio.precio),
-      fecha_precio: servicio.fecha_precio,
-      mostrar_destinos: servicio.mostrar_destinos || false,
-      activo: servicio.activo,
-    }
+    form.value = { ...responsable }
   } else {
     isEditing.value = false
     form.value = {
       nombre: '',
-      precio: 0,
-      fecha_precio: new Date().toISOString().split('T')[0],
-      mostrar_destinos: false,
+      telefono: '',
       activo: true,
     }
   }
   showDialog.value = true
 }
 
-const saveServicio = async () => {
+const saveResponsable = async () => {
   saving.value = true
 
   try {
     const payload = {
       nombre: form.value.nombre,
-      precio: form.value.precio,
-      fecha_precio: form.value.fecha_precio,
-      mostrar_destinos: form.value.mostrar_destinos,
+      telefono: form.value.telefono,
       activo: form.value.activo,
     }
 
     if (isEditing.value) {
-      await api.put(`base/servicios/${form.value.id}/`, payload)
-      notifySuccess('Servicio actualizado correctamente')
+      await api.put(`base/responsables/${form.value.id}/`, payload)
+      notifySuccess('Responsable actualizado correctamente')
     } else {
-      await api.post('base/servicios/', payload)
-      notifySuccess('Servicio creado correctamente')
+      await api.post('base/responsables/', payload)
+      notifySuccess('Responsable creado correctamente')
     }
 
     showDialog.value = false
-    loadServicios()
+    loadResponsables()
   } catch (error) {
-    notifyError('Error al guardar el servicio')
+    notifyError('Error al guardar el responsable')
     console.error(error)
   } finally {
     saving.value = false
@@ -352,6 +276,6 @@ const saveServicio = async () => {
 }
 
 onMounted(() => {
-  loadServicios()
+  loadResponsables()
 })
 </script>

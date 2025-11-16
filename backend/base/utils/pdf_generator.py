@@ -64,33 +64,59 @@ class PDFGenerator:
             margin: 1cm;
         }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', 'Helvetica Neue', 'Roboto', 'Ubuntu', 'Cantarell', sans-serif;
             font-size: 10pt;
+            color: #333;
         }
         .header {
-            text-align: center;
-            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            min-height: 50px;
         }
-        .header img {
-            max-height: 60px;
+        .header-left {
+            flex: 0 0 auto;
         }
-        .header h1 {
-            margin: 5px 0;
-            font-size: 16pt;
+        .header-left img {
+            max-height: 50px;
+            max-width: 150px;
+        }
+        .header-right {
+            flex: 1;
+            text-align: right;
+            padding-left: 20px;
+        }
+        .header-right h1 {
+            margin: 0 0 3px 0;
+            font-size: 14pt;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+        .header-right p {
+            margin: 2px 0;
+            font-size: 9pt;
+            color: #555;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            letter-spacing: -0.2px;
         }
         table {
             width: 100%%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin: 5px 0;
         }
         table th, table td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 5px 6px;
             text-align: left;
         }
         table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+            background-color: #f5f5f5;
+            font-weight: 600;
+            font-size: 9pt;
+            color: #444;
         }
         .text-right {
             text-align: right;

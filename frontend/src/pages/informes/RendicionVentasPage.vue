@@ -39,7 +39,7 @@
           </div>
         </div>
         <div class="row q-mt-md">
-          <div class="col-12 flex justify-end">
+          <div class="col-12 flex justify-end q-gutter-sm">
             <q-btn
               color="primary"
               label="Buscar"
@@ -47,6 +47,14 @@
               @click="loadRendicion"
               :loading="loading"
               :disable="!canSearch"
+            />
+            <q-btn
+              v-if="reservas.length > 0"
+              color="secondary"
+              icon="print"
+              label="Imprimir"
+              @click="imprimirPDF"
+              :loading="loadingPDF"
             />
           </div>
         </div>
@@ -74,6 +82,9 @@
         </q-tr>
       </template>
     </data-table>
+
+    <!-- Dialog para ver PDF -->
+    <pdf-viewer v-model="showPdfDialog" :pdf-url="pdfUrl" title="Rendición de Ventas" />
   </q-page>
 </template>
 
@@ -85,12 +96,16 @@ import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
+import PdfViewer from 'src/components/PdfViewer.vue'
 
 const api = useApi()
 const { notifyError } = useNotify()
 
 const reservas = ref([])
 const loading = ref(false)
+const loadingPDF = ref(false)
+const showPdfDialog = ref(false)
+const pdfUrl = ref('')
 const filters = ref({
   usuario: null,
   fecha: { desde: null, hasta: null },
@@ -226,4 +241,38 @@ const loadRendicion = async (props) => {
 }
 
 const onRequest = (props) => loadRendicion(props)
+
+const imprimirPDF = async () => {
+  if (!canSearch.value) return
+
+  loadingPDF.value = true
+  try {
+    const params = {
+      girado_por: filters.value.usuario?.id || filters.value.usuario,
+      girado_cuando__gte: filters.value.fecha.desde,
+      girado_cuando__lte: filters.value.fecha.hasta,
+    }
+
+    if (filters.value.agencia) {
+      params.cliente = filters.value.agencia?.id || filters.value.agencia
+    }
+    if (filters.value.tipo_pago !== null && filters.value.tipo_pago !== undefined) {
+      params.tipo_pago = filters.value.tipo_pago
+    }
+
+    const response = await api.get('reservas/reservas/pdf_rendicion_ventas/', {
+      params,
+      responseType: 'blob',
+    })
+
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    pdfUrl.value = URL.createObjectURL(blob)
+    showPdfDialog.value = true
+  } catch (error) {
+    console.error(error)
+    notifyError('Error al generar PDF')
+  } finally {
+    loadingPDF.value = false
+  }
+}
 </script>

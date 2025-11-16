@@ -43,9 +43,11 @@ class OrdenServicioDetalleInline(admin.TabularInline):
 
 @admin.register(OrdenServicio)
 class OrdenServicioAdmin(admin.ModelAdmin):
-    list_display = ['id', 'fecha', 'servicio', 'guia', 'chofer', 'idioma']
+    list_display = ['id', 'fecha', 'servicio',
+                    'guia', 'chofer', 'responsable', 'idioma']
     list_filter = ['fecha', 'servicio', 'idioma']
-    search_fields = ['servicio__nombre', 'guia__nombre', 'chofer__nombre']
+    search_fields = ['servicio__nombre', 'guia__nombre',
+                     'chofer__nombre', 'responsable__nombre']
     inlines = [OrdenServicioDetalleInline]
 
 

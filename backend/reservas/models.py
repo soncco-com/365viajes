@@ -91,6 +91,8 @@ class OrdenServicio(models.Model):
     servicio = models.ForeignKey('base.Servicio', on_delete=models.PROTECT)
     chofer = models.ForeignKey('base.Chofer', on_delete=models.PROTECT)
     guia = models.ForeignKey('base.Guia', on_delete=models.PROTECT)
+    responsable = models.ForeignKey(
+        'base.Responsable', on_delete=models.PROTECT, null=True, blank=True)
     idioma = models.CharField(max_length=2, choices=IDIOMAS)
     observaciones = models.TextField(null=True, blank=True)
 

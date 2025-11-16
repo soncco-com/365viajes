@@ -19,7 +19,7 @@
               option-label="nombre"
             />
           </div>
-          <div class="col-12 col-md-2 flex items-center">
+          <div class="col-12 col-md-2 flex items-center q-gutter-sm">
             <q-btn
               color="primary"
               label="Buscar"
@@ -27,6 +27,17 @@
               @click="loadReporte"
               :loading="loading"
             />
+            <q-btn
+              v-if="adicionales.length > 0"
+              color="secondary"
+              icon="print"
+              flat
+              round
+              @click="imprimirPDF"
+              :loading="loadingPDF"
+            >
+              <q-tooltip>Imprimir PDF</q-tooltip>
+            </q-btn>
           </div>
         </div>
       </q-card-section>
@@ -73,6 +84,9 @@
         </div>
       </q-card-section>
     </q-card>
+
+    <!-- Dialog para ver PDF -->
+    <pdf-viewer v-model="showPdfDialog" :pdf-url="pdfUrl" title="Informe de Adicionales" />
   </q-page>
 </template>
 
@@ -84,12 +98,16 @@ import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
+import PdfViewer from 'src/components/PdfViewer.vue'
 
 const api = useApi()
 const { notifyError } = useNotify()
 
 const adicionales = ref([])
 const loading = ref(false)
+const loadingPDF = ref(false)
+const showPdfDialog = ref(false)
+const pdfUrl = ref('')
 const filters = ref({ fecha: { desde: null, hasta: null }, adicional: null })
 
 const columns = [
@@ -186,6 +204,36 @@ const loadReporte = async (props) => {
 }
 
 const onRequest = (props) => loadReporte(props)
+
+const imprimirPDF = async () => {
+  if (!filters.value.fecha.desde || !filters.value.fecha.hasta || !filters.value.adicional) {
+    notifyError('Debe seleccionar rango de fechas y adicional')
+    return
+  }
+
+  loadingPDF.value = true
+  try {
+    const params = {
+      cuando__gte: filters.value.fecha.desde,
+      cuando__lte: filters.value.fecha.hasta,
+      adicional: filters.value.adicional?.id || filters.value.adicional,
+    }
+
+    const response = await api.get('reservas/reserva-adicionales/pdf_adicionales/', {
+      params,
+      responseType: 'blob',
+    })
+
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    pdfUrl.value = URL.createObjectURL(blob)
+    showPdfDialog.value = true
+  } catch (error) {
+    console.error(error)
+    notifyError('Error al generar PDF')
+  } finally {
+    loadingPDF.value = false
+  }
+}
 
 onMounted(() => {
   const today = new Date().toISOString().split('T')[0]

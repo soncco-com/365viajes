@@ -107,6 +107,12 @@ const routes = [
         meta: { requiresAdmin: true },
       },
       {
+        path: '/admin/responsables',
+        name: 'admin-responsables',
+        component: () => import('pages/admin/ResponsablesPage.vue'),
+        meta: { requiresAdmin: true },
+      },
+      {
         path: '/admin/lugares',
         name: 'admin-lugares',
         component: () => import('pages/admin/LugaresPage.vue'),
@@ -141,6 +147,14 @@ const routes = [
         path: '/admin/auditoria',
         name: 'admin-auditoria',
         component: () => import('pages/admin/AuditoriaPage.vue'),
+        meta: { requiresAdmin: true },
+      },
+
+      // Configuraciones del Sistema
+      {
+        path: '/admin/configuraciones',
+        name: 'admin-configuraciones',
+        component: () => import('pages/admin/ConfiguracionesPage.vue'),
         meta: { requiresAdmin: true },
       },
     ],

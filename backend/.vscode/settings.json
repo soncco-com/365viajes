@@ -8,7 +8,7 @@
   "emmet.includeLanguages": { "django-html": "html" },
   "[django-html]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "HookyQR.beautify"
+    "editor.defaultFormatter": "junstyle.vscode-django-support"
   },
   "beautify.language": {
     "html": ["htm", "html", "django-html"]

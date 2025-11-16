@@ -31,7 +31,7 @@
               map-options
             />
           </div>
-          <div class="col-12 col-md-2 flex items-center">
+          <div class="col-12 col-md-2 flex items-center q-gutter-sm">
             <q-btn
               color="primary"
               label="Buscar"
@@ -40,6 +40,17 @@
               :loading="loading"
               :disable="!canSearch"
             />
+            <q-btn
+              v-if="hasSearched && (servicios.length > 0 || adicionales.length > 0)"
+              color="secondary"
+              icon="print"
+              flat
+              round
+              @click="imprimirPDF"
+              :loading="loadingPDF"
+            >
+              <q-tooltip>Imprimir PDF</q-tooltip>
+            </q-btn>
           </div>
         </div>
       </q-card-section>
@@ -208,6 +219,13 @@
       <div class="text-h6 q-mt-md">No se encontraron resultados</div>
       <div class="text-subtitle2">Intenta con otros filtros</div>
     </div>
+
+    <!-- Dialog para ver PDF -->
+    <pdf-viewer
+      v-model="showPdfDialog"
+      :pdf-url="pdfUrl"
+      title="Informe de Servicios por Agencia"
+    />
   </q-page>
 </template>
 
@@ -219,6 +237,7 @@ import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
+import PdfViewer from 'src/components/PdfViewer.vue'
 
 const router = useRouter()
 const api = useApi()
@@ -227,7 +246,10 @@ const { notifyError } = useNotify()
 const servicios = ref([])
 const adicionales = ref([])
 const loading = ref(false)
+const loadingPDF = ref(false)
 const hasSearched = ref(false)
+const showPdfDialog = ref(false)
+const pdfUrl = ref('')
 const filters = ref({
   fecha: { desde: null, hasta: null },
   cliente: null,
@@ -448,5 +470,37 @@ const loadReporte = async () => {
 
 const verReserva = (reservaId) => {
   router.push(`/reservas/${reservaId}/editar`)
+}
+
+const imprimirPDF = async () => {
+  if (!canSearch.value) return
+
+  loadingPDF.value = true
+  try {
+    const params = {
+      cuando__gte: filters.value.fecha.desde,
+      cuando__lte: filters.value.fecha.hasta,
+      pertenece_a__cliente: filters.value.cliente?.id || filters.value.cliente,
+    }
+
+    if (filters.value.estado !== null && filters.value.estado !== undefined) {
+      params['pertenece_a__estado'] = filters.value.estado
+    }
+
+    const response = await api.get('reservas/reserva-detalles/pdf_servicio_agencias/', {
+      params,
+      responseType: 'blob',
+    })
+
+    // Crear URL del blob y mostrar en visor
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    pdfUrl.value = URL.createObjectURL(blob)
+    showPdfDialog.value = true
+  } catch (error) {
+    console.error(error)
+    notifyError('Error al generar PDF')
+  } finally {
+    loadingPDF.value = false
+  }
 }
 </script>

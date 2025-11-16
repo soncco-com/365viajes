@@ -1,43 +1,70 @@
-{% extends "pdf/base.html" %} {% block title %}Reserva #{{
-reserva.numero|default:reserva.id }}{% endblock %} {% block content %}
-<h2 class="text-center">
-  RESERVA {% if reserva.numero %}N° {{ reserva.numero }}{% else %}#{{ reserva.id
-  }}{% endif %}
-</h2>
+{% extends 'pdf/base.html' %} {% block title %} Reserva #{{
+reserva.numero|default:reserva.id }} {% endblock %} {% block content %}
+<div
+  style="
+    background-color: #f0f0f0;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 3px;
+  "
+>
+  <h2 style="margin: 0; font-size: 14pt; text-align: center">
+    RESERVA{% if reserva.numero %} N° {{ reserva.numero }} {% endif %} / Voucher
+    #{{ reserva.id }}
+  </h2>
+</div>
 
-<table class="no-border">
+<table class="no-border" style="margin-bottom: 10px">
   <tr>
-    <td class="no-border" width="50%">
-      <strong>Agencia:</strong> {{ reserva.cliente.nombre }}
+    <td class="no-border" width="25%">
+      <strong>Agencia:</strong>
     </td>
-    <td class="no-border" width="50%">
-      <strong>Fecha:</strong> {{ reserva.fecha|date:"d/m/Y" }}
+    <td class="no-border" width="25%">{{ reserva.cliente.nombre }}</td>
+    <td class="no-border" width="25%">
+      <strong>Pasajero:</strong>
     </td>
-  </tr>
-  <tr>
-    <td class="no-border"><strong>Pasajero:</strong> {{ reserva.pasajero }}</td>
-    <td class="no-border">
-      <strong>Estado:</strong> {{ reserva.get_estado_display }}
-    </td>
+    <td class="no-border" width="25%">{{ reserva.pasajero }}</td>
   </tr>
   <tr>
     <td class="no-border">
-      <strong>Tipo Documento:</strong> {{ reserva.get_tipo_documento_display }}
+      <strong>Fecha:</strong>
     </td>
+    <td class="no-border">{{ reserva.fecha|date:'d/m/Y' }}</td>
     <td class="no-border">
-      <strong>Número Doc:</strong> {{ reserva.numero|default:"-" }}
+      <strong>Estado:</strong>
     </td>
+    <td class="no-border">{{ reserva.get_estado_display }}</td>
+  </tr>
+  <tr>
+    <td class="no-border">
+      <strong>Tipo Doc:</strong>
+    </td>
+    <td class="no-border">{{ reserva.get_tipo_documento_display }}</td>
+    <td class="no-border">
+      <strong>Número Doc:</strong>
+    </td>
+    <td class="no-border">{{ reserva.numero|default:'-' }}</td>
   </tr>
 </table>
 
-<h3>Servicios</h3>
-<table>
+<h3
+  style="
+    margin: 8px 0 5px 0;
+    font-size: 11pt;
+    background-color: #e8e8e8;
+    padding: 4px 8px;
+    border-radius: 2px;
+  "
+>
+  Servicios
+</h3>
+<table style="font-size: 9pt">
   <thead>
     <tr>
-      <th width="8%">N° Pax</th>
-      <th width="30%">Servicio</th>
-      <th width="25%">Hotel</th>
-      <th width="12%">Fecha</th>
+      <th width="6%">Pax</th>
+      <th width="32%">Servicio</th>
+      <th width="26%">Hotel</th>
+      <th width="11%">Fecha</th>
       <th width="10%">Idioma</th>
       <th class="text-right" width="15%">Subtotal</th>
     </tr>
@@ -48,7 +75,7 @@ reserva.numero|default:reserva.id }}{% endblock %} {% block content %}
       <td class="text-center">{{ detalle.numero_pax }}</td>
       <td>{{ detalle.servicio.nombre }}</td>
       <td>{{ detalle.recoger_en.nombre }}</td>
-      <td class="text-center">{{ detalle.cuando|date:"d/m/Y" }}</td>
+      <td class="text-center">{{ detalle.cuando|date:'d/m/Y' }}</td>
       <td class="text-center">{{ detalle.get_idioma_display }}</td>
       <td class="text-right">S/ {{ detalle.total|floatformat:2 }}</td>
     </tr>
@@ -61,12 +88,22 @@ reserva.numero|default:reserva.id }}{% endblock %} {% block content %}
 </table>
 
 {% if adicionales %}
-<h3>Adicionales</h3>
-<table>
+<h3
+  style="
+    margin: 8px 0 5px 0;
+    font-size: 11pt;
+    background-color: #e8e8e8;
+    padding: 4px 8px;
+    border-radius: 2px;
+  "
+>
+  Adicionales
+</h3>
+<table style="font-size: 9pt">
   <thead>
     <tr>
-      <th width="15%">Cantidad</th>
-      <th width="50%">Adicional</th>
+      <th width="12%">Cantidad</th>
+      <th width="53%">Adicional</th>
       <th width="20%">Fecha</th>
       <th class="text-right" width="15%">Subtotal</th>
     </tr>
@@ -76,8 +113,12 @@ reserva.numero|default:reserva.id }}{% endblock %} {% block content %}
     <tr>
       <td class="text-center">{{ adicional.cantidad }}</td>
       <td>{{ adicional.adicional.nombre }}</td>
-      <td class="text-center">{{ adicional.cuando|date:"d/m/Y" }}</td>
+      <td class="text-center">{{ adicional.cuando|date:'d/m/Y' }}</td>
       <td class="text-right">S/ {{ adicional.total|floatformat:2 }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="4" class="text-center">No hay adicionales registrados</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -86,10 +127,12 @@ reserva.numero|default:reserva.id }}{% endblock %} {% block content %}
 
 <table
   class="no-border"
-  style="width: 50%; margin-left: auto; margin-top: 20px"
+  style="width: 45%; margin-left: auto; margin-top: 10px; font-size: 10pt"
 >
   <tr>
-    <td class="no-border text-right" width="60%"><strong>Subtotal:</strong></td>
+    <td class="no-border text-right" width="60%">
+      <strong>Subtotal:</strong>
+    </td>
     <td class="no-border text-right" width="40%">
       <strong>S/ {{ reserva.total|floatformat:2 }}</strong>
     </td>
@@ -104,15 +147,19 @@ reserva.numero|default:reserva.id }}{% endblock %} {% block content %}
     </td>
   </tr>
   <tr class="totales">
-    <td class="no-border text-right"><strong>TOTAL NETO:</strong></td>
-    <td class="no-border text-right">
+    <td class="no-border text-right" style="padding-top: 5px">
+      <strong>TOTAL NETO:</strong>
+    </td>
+    <td class="no-border text-right" style="padding-top: 5px">
       <strong>S/ {{ total_neto|floatformat:2 }}</strong>
     </td>
   </tr>
   {% else %}
   <tr class="totales">
-    <td class="no-border text-right"><strong>TOTAL:</strong></td>
-    <td class="no-border text-right">
+    <td class="no-border text-right" style="padding-top: 5px">
+      <strong>TOTAL:</strong>
+    </td>
+    <td class="no-border text-right" style="padding-top: 5px">
       <strong>S/ {{ reserva.total|floatformat:2 }}</strong>
     </td>
   </tr>
@@ -122,13 +169,14 @@ reserva.numero|default:reserva.id }}{% endblock %} {% block content %}
 {% if reserva.observaciones %}
 <div
   style="
-    margin-top: 20px;
-    padding: 10px;
+    margin-top: 10px;
+    padding: 8px;
     border: 1px solid #ddd;
     background-color: #f9f9f9;
+    border-radius: 3px;
   "
 >
-  <p style="margin: 0"><strong>Observaciones:</strong></p>
-  <p style="margin: 5px 0 0 0">{{ reserva.observaciones }}</p>
+  <p style="margin: 0; font-weight: bold; font-size: 9pt">Observaciones:</p>
+  <p style="margin: 3px 0 0 0; font-size: 9pt">{{ reserva.observaciones }}</p>
 </div>
 {% endif %} {% endblock %}

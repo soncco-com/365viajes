@@ -61,22 +61,12 @@ class Lugar(models.Model):
         return self.nombre
 
 
-class Formato(models.Model):
-    nombre = models.CharField(max_length=255, unique=True)
-    descripcion = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return self.nombre
-
-
 class Servicio(models.Model):
     nombre = models.CharField(max_length=255)
     precio = models.DecimalField(
         max_digits=11, decimal_places=2, default=Decimal('0.00'))
     fecha_precio = models.DateField()
     activo = models.BooleanField(default=True)
-    formato = models.ForeignKey(Formato, on_delete=models.PROTECT)
-    cantidad_carrito = models.IntegerField(default=20)
     mostrar_destinos = models.BooleanField(
         default=False,
         help_text='Si está activo, al agregar este servicio en una reserva se solicitará un destino'
@@ -187,6 +177,18 @@ class Chofer(models.Model):
     class Meta:
         verbose_name = 'Transporte'
         verbose_name_plural = 'Transportes'
+
+    def __str__(self):
+        return self.nombre
+
+
+class Responsable(models.Model):
+    nombre = models.CharField(max_length=255)
+    telefono = models.CharField(max_length=40, blank=True, null=True)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name_plural = 'Responsables'
 
     def __str__(self):
         return self.nombre

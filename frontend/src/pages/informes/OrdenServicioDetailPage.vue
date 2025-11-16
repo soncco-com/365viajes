@@ -23,9 +23,13 @@
             <div class="text-grey-7">Guía</div>
             <div class="text-h6">{{ orden.guia_nombre }}</div>
           </div>
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-3">
             <div class="text-grey-7">Chofer</div>
             <div class="text-h6">{{ orden.chofer_nombre }}</div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="text-grey-7">Responsable</div>
+            <div class="text-h6">{{ orden.responsable_nombre || 'No asignado' }}</div>
           </div>
         </div>
         <div class="row q-col-gutter-md q-mt-md" v-if="orden.observaciones">

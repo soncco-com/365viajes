@@ -96,91 +96,131 @@
             icon="settings"
             dropdown-icon="expand_more"
           >
-            <q-list>
-              <q-item clickable v-close-popup to="/admin/usuarios">
+            <q-list style="min-width: 200px">
+              <!-- Catálogos -->
+              <q-item-label header class="text-weight-bold text-grey-8">
+                <q-icon name="folder" size="18px" class="q-mr-xs" /> Catálogos
+              </q-item-label>
+              <q-item clickable v-close-popup to="/admin/clientes" class="q-pl-md">
                 <q-item-section avatar>
-                  <q-icon name="person" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Usuarios</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup to="/admin/clientes">
-                <q-item-section avatar>
-                  <q-icon name="business" />
+                  <q-icon name="business" size="20px" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Agencias</q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item clickable v-close-popup to="/admin/servicios">
+              <q-item clickable v-close-popup to="/admin/lugares" class="q-pl-md">
                 <q-item-section avatar>
-                  <q-icon name="tour" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Servicios</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup to="/admin/precios-especiales">
-                <q-item-section avatar>
-                  <q-icon name="local_offer" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Precios Especiales</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup to="/admin/servicio-paradas">
-                <q-item-section avatar>
-                  <q-icon name="map" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Paradas de Servicios</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup to="/admin/lugares">
-                <q-item-section avatar>
-                  <q-icon name="hotel" />
+                  <q-icon name="hotel" size="20px" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Hoteles</q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item clickable v-close-popup to="/admin/guias">
+              <q-item clickable v-close-popup to="/admin/adicionales" class="q-pl-md">
                 <q-item-section avatar>
-                  <q-icon name="badge" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Guías</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup to="/admin/choferes">
-                <q-item-section avatar>
-                  <q-icon name="directions_bus" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Transportes</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup to="/admin/adicionales">
-                <q-item-section avatar>
-                  <q-icon name="add_box" />
+                  <q-icon name="add_box" size="20px" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Adicionales</q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item clickable v-close-popup to="/admin/horarios">
+              <q-item clickable v-close-popup to="/admin/horarios" class="q-pl-md">
                 <q-item-section avatar>
-                  <q-icon name="schedule" />
+                  <q-icon name="schedule" size="20px" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Horarios</q-item-label>
                 </q-item-section>
               </q-item>
-              <q-separator />
-              <q-item clickable v-close-popup to="/admin/auditoria">
+
+              <q-separator spaced />
+
+              <!-- Servicios -->
+              <q-item-label header class="text-weight-bold text-grey-8">
+                <q-icon name="tour" size="18px" class="q-mr-xs" /> Servicios
+              </q-item-label>
+              <q-item clickable v-close-popup to="/admin/servicios" class="q-pl-md">
                 <q-item-section avatar>
-                  <q-icon name="history" />
+                  <q-icon name="tour" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Servicios</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/admin/precios-especiales" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="local_offer" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Precios Especiales</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/admin/servicio-paradas" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="map" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Paradas de Servicios</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-separator spaced />
+
+              <!-- Personal -->
+              <q-item-label header class="text-weight-bold text-grey-8">
+                <q-icon name="group" size="18px" class="q-mr-xs" /> Personal
+              </q-item-label>
+              <q-item clickable v-close-popup to="/admin/guias" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="badge" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Guías</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/admin/choferes" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="directions_bus" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Transportes</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/admin/responsables" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="person_pin" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Responsables</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-separator spaced />
+
+              <!-- Sistema -->
+              <q-item-label header class="text-weight-bold text-grey-8">
+                <q-icon name="settings_applications" size="18px" class="q-mr-xs" /> Sistema
+              </q-item-label>
+              <q-item clickable v-close-popup to="/admin/usuarios" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="person" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Usuarios</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/admin/configuraciones" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="tune" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Configuraciones</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/admin/auditoria" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="history" size="20px" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Auditoría</q-item-label>
@@ -341,26 +381,16 @@
 
           <!-- Administración (solo admin) -->
           <q-expansion-item v-if="isAdmin" expand-separator icon="settings" label="Administración">
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/usuarios"
-              @click="leftDrawerOpen = false"
-              class="q-pl-lg"
-            >
-              <q-item-section avatar>
-                <q-icon name="person" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Usuarios</q-item-label>
-              </q-item-section>
-            </q-item>
+            <!-- Catálogos -->
+            <q-item-label header class="q-pl-lg text-weight-bold text-grey-8">
+              Catálogos
+            </q-item-label>
             <q-item
               clickable
               v-ripple
               to="/admin/clientes"
               @click="leftDrawerOpen = false"
-              class="q-pl-lg"
+              class="q-pl-xl"
             >
               <q-item-section avatar>
                 <q-icon name="business" />
@@ -372,51 +402,9 @@
             <q-item
               clickable
               v-ripple
-              to="/admin/servicios"
-              @click="leftDrawerOpen = false"
-              class="q-pl-lg"
-            >
-              <q-item-section avatar>
-                <q-icon name="tour" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Servicios</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/precios-especiales"
-              @click="leftDrawerOpen = false"
-              class="q-pl-lg"
-            >
-              <q-item-section avatar>
-                <q-icon name="local_offer" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Precios Especiales</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/servicio-paradas"
-              @click="leftDrawerOpen = false"
-              class="q-pl-lg"
-            >
-              <q-item-section avatar>
-                <q-icon name="map" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Paradas de Servicios</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
               to="/admin/lugares"
               @click="leftDrawerOpen = false"
-              class="q-pl-lg"
+              class="q-pl-xl"
             >
               <q-item-section avatar>
                 <q-icon name="hotel" />
@@ -428,37 +416,9 @@
             <q-item
               clickable
               v-ripple
-              to="/admin/guias"
-              @click="leftDrawerOpen = false"
-              class="q-pl-lg"
-            >
-              <q-item-section avatar>
-                <q-icon name="badge" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Guías</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/choferes"
-              @click="leftDrawerOpen = false"
-              class="q-pl-lg"
-            >
-              <q-item-section avatar>
-                <q-icon name="directions_bus" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Transportes</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
               to="/admin/adicionales"
               @click="leftDrawerOpen = false"
-              class="q-pl-lg"
+              class="q-pl-xl"
             >
               <q-item-section avatar>
                 <q-icon name="add_box" />
@@ -472,7 +432,7 @@
               v-ripple
               to="/admin/horarios"
               @click="leftDrawerOpen = false"
-              class="q-pl-lg"
+              class="q-pl-xl"
             >
               <q-item-section avatar>
                 <q-icon name="schedule" />
@@ -481,13 +441,139 @@
                 <q-item-label>Horarios</q-item-label>
               </q-item-section>
             </q-item>
-            <q-separator spaced />
+
+            <!-- Servicios -->
+            <q-item-label header class="q-pl-lg text-weight-bold text-grey-8">
+              Servicios
+            </q-item-label>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/servicios"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="tour" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Servicios</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/precios-especiales"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="local_offer" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Precios Especiales</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/servicio-paradas"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="map" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Paradas de Servicios</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <!-- Personal -->
+            <q-item-label header class="q-pl-lg text-weight-bold text-grey-8">
+              Personal
+            </q-item-label>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/guias"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="badge" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Guías</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/choferes"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="directions_bus" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Transportes</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/responsables"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="person_pin" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Responsables</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <!-- Sistema -->
+            <q-item-label header class="q-pl-lg text-weight-bold text-grey-8">
+              Sistema
+            </q-item-label>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/usuarios"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="person" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Usuarios</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/configuraciones"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="tune" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Configuraciones</q-item-label>
+              </q-item-section>
+            </q-item>
             <q-item
               clickable
               v-ripple
               to="/admin/auditoria"
               @click="leftDrawerOpen = false"
-              class="q-pl-lg"
+              class="q-pl-xl"
             >
               <q-item-section avatar>
                 <q-icon name="history" />

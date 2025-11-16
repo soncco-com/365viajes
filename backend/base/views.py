@@ -1,8 +1,8 @@
 """
 ViewSets para el app base
 """
-from rest_framework import viewsets, filters, status, serializers
-from rest_framework.decorators import action, api_view
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
@@ -11,15 +11,15 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 
 from .models import (
-    OpcionGeneral, Auditoria, Lugar, Formato, Servicio,
-    Adicional, Cliente, Horario, Guia, Chofer,
+    OpcionGeneral, Auditoria, Lugar, Servicio,
+    Adicional, Cliente, Horario, Guia, Chofer, Responsable,
     ServicioPrecioEspecial, ServicioParada
 )
 from .serializers import (
     OpcionGeneralSerializer, AuditoriaSerializer, LugarSerializer,
-    FormatoSerializer, ServicioSerializer, AdicionalSerializer,
-    ClienteSerializer, HorarioSerializer, GuiaSerializer,
-    ChoferSerializer, UserSerializer,
+    ServicioSerializer, AdicionalSerializer,
+    ClienteSerializer, ChoferSerializer, GuiaSerializer, HorarioSerializer,
+    ResponsableSerializer, UserSerializer, GroupSerializer,
     ServicioPrecioEspecialSerializer, ServicioParadaSerializer
 )
 
@@ -82,23 +82,13 @@ class LugarViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class FormatoViewSet(viewsets.ModelViewSet):
-    """ViewSet para Formatos"""
-    queryset = Formato.objects.all()
-    serializer_class = FormatoSerializer
-    filter_backends = [DjangoFilterBackend,
-                       filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['nombre', 'descripcion']
-    ordering_fields = '__all__'
-
-
 class ServicioViewSet(viewsets.ModelViewSet):
     """ViewSet para Servicios"""
-    queryset = Servicio.objects.select_related('formato').all()
+    queryset = Servicio.objects.all()
     serializer_class = ServicioSerializer
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['activo', 'formato']
+    filterset_fields = ['activo']
     search_fields = ['nombre']
     ordering_fields = '__all__'
 
@@ -180,6 +170,25 @@ class ChoferViewSet(viewsets.ModelViewSet):
     ordering_fields = '__all__'
 
 
+class ResponsableViewSet(viewsets.ModelViewSet):
+    """ViewSet para Responsables"""
+    queryset = Responsable.objects.all()
+    serializer_class = ResponsableSerializer
+    filter_backends = [DjangoFilterBackend,
+                       filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['activo']
+    search_fields = ['nombre', 'telefono']
+    ordering_fields = '__all__'
+
+    @method_decorator(cache_page(60 * 5))
+    @action(detail=False, methods=['get'])
+    def activos(self, request):
+        """Retorna solo responsables activos"""
+        queryset = self.queryset.filter(activo=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
 class UserViewSet(viewsets.ModelViewSet):
     """ViewSet para Usuarios"""
     queryset = User.objects.all()
@@ -211,7 +220,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para Grupos (solo lectura)"""
     queryset = Group.objects.all()
-    serializer_class = serializers.Serializer
+    serializer_class = GroupSerializer
 
     def list(self, request):
         """Listar todos los grupos"""

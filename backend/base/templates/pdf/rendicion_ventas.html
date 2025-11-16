@@ -1,0 +1,120 @@
+{% extends 'pdf/base.html' %} {% block title %}Rendición de Ventas{% endblock %}
+{% block content %}
+<div
+  style="
+    background-color: #f0f0f0;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 3px;
+  "
+>
+  <h2 style="margin: 0; font-size: 14pt; text-align: center">
+    RENDICIÓN DE VENTAS
+  </h2>
+</div>
+
+<table class="no-border" style="margin-bottom: 10px; font-size: 9pt">
+  <tr>
+    <td class="no-border" width="25%"><strong>Usuario:</strong></td>
+    <td class="no-border" width="75%">{{ usuario_nombre }}</td>
+  </tr>
+  <tr>
+    <td class="no-border"><strong>Período:</strong></td>
+    <td class="no-border">
+      {{ fecha_desde|date:'d/m/Y' }} - {{ fecha_hasta|date:'d/m/Y' }}
+    </td>
+  </tr>
+  {% if agencia_nombre %}
+  <tr>
+    <td class="no-border"><strong>Agencia:</strong></td>
+    <td class="no-border">{{ agencia_nombre }}</td>
+  </tr>
+  {% endif %} {% if tipo_pago_display %}
+  <tr>
+    <td class="no-border"><strong>Tipo de Pago:</strong></td>
+    <td class="no-border">{{ tipo_pago_display }}</td>
+  </tr>
+  {% endif %}
+  <tr>
+    <td class="no-border"><strong>Total Reservas:</strong></td>
+    <td class="no-border">{{ reservas|length }} cobro(s)</td>
+  </tr>
+</table>
+
+<h3
+  style="
+    margin: 8px 0 5px 0;
+    font-size: 11pt;
+    background-color: #e8e8e8;
+    padding: 4px 8px;
+    border-radius: 2px;
+  "
+>
+  Detalle de Cobros
+</h3>
+<table style="font-size: 8pt">
+  <thead>
+    <tr>
+      <th width="8%">ID</th>
+      <th width="22%">Agencia</th>
+      <th width="10%">Fecha 1er Serv.</th>
+      <th width="10%">Fecha Girado</th>
+      <th width="20%">Pasajero</th>
+      <th width="10%">Comprobante</th>
+      <th width="10%">Tipo Pago</th>
+      <th class="text-right" width="10%">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for reserva in reservas %}
+    <tr>
+      <td class="text-center">{{ reserva.id }}</td>
+      <td>{{ reserva.cliente_nombre }}</td>
+      <td class="text-center">
+        {% if reserva.fecha_primer_servicio %}{{
+        reserva.fecha_primer_servicio|date:'d/m/Y' }}{% else %}-{% endif %}
+      </td>
+      <td class="text-center">
+        {% if reserva.girado_cuando %}{{ reserva.girado_cuando|date:'d/m/Y' }}{%
+        else %}-{% endif %}
+      </td>
+      <td>{{ reserva.pasajero }}</td>
+      <td class="text-center">{{ reserva.tipo_documento_display }}</td>
+      <td class="text-center">{{ reserva.tipo_pago_display|default:'-' }}</td>
+      <td class="text-right">S/ {{ reserva.total|floatformat:2 }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="totales">
+      <td colspan="7" class="text-right"><strong>TOTAL:</strong></td>
+      <td class="text-right">
+        <strong>S/ {{ total_general|floatformat:2 }}</strong>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div
+  style="
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #d4edda;
+    border: 2px solid #28a745;
+    border-radius: 3px;
+  "
+>
+  <table class="no-border" style="font-size: 12pt; width: 100%">
+    <tr>
+      <td class="no-border" width="50%">
+        <strong>TOTAL COBRADO:</strong>
+      </td>
+      <td
+        class="no-border text-right"
+        width="50%"
+        style="font-size: 16pt; color: #155724"
+      >
+        <strong>S/ {{ total_general|floatformat:2 }}</strong>
+      </td>
+    </tr>
+  </table>
+</div>
+{% endblock %}

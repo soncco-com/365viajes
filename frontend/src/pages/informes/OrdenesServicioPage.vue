@@ -28,7 +28,7 @@
               map-options
             />
           </div>
-          <div class="col-12 col-md-2">
+          <div class="col-12 col-md-1">
             <autocomplete-input
               v-model="filters.guia"
               label="Guía"
@@ -36,11 +36,19 @@
               option-label="nombre"
             />
           </div>
-          <div class="col-12 col-md-2">
+          <div class="col-12 col-md-1">
             <autocomplete-input
               v-model="filters.chofer"
               label="Chofer"
               endpoint="base/choferes"
+              option-label="nombre"
+            />
+          </div>
+          <div class="col-12 col-md-2">
+            <autocomplete-input
+              v-model="filters.responsable"
+              label="Responsable"
+              endpoint="base/responsables"
               option-label="nombre"
             />
           </div>
@@ -71,12 +79,18 @@
           <q-btn flat dense round icon="visibility" color="primary" @click="viewOrden(props.row)">
             <q-tooltip>Ver detalles</q-tooltip>
           </q-btn>
+          <q-btn flat dense round icon="print" color="secondary" @click="printOrden(props.row)">
+            <q-tooltip>Imprimir PDF</q-tooltip>
+          </q-btn>
           <q-btn flat dense round icon="delete" color="negative" @click="deleteOrden(props.row)">
             <q-tooltip>Eliminar</q-tooltip>
           </q-btn>
         </q-td>
       </template>
     </data-table>
+
+    <!-- Visor de PDF -->
+    <pdf-viewer v-model="showPdfDialog" :pdf-url="pdfUrl" />
   </q-page>
 </template>
 
@@ -89,6 +103,7 @@ import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
+import PdfViewer from 'src/components/PdfViewer.vue'
 
 const router = useRouter()
 const api = useApi()
@@ -96,12 +111,15 @@ const { notifySuccess, notifyError, confirm } = useNotify()
 
 const ordenes = ref([])
 const loading = ref(false)
+const showPdfDialog = ref(false)
+const pdfUrl = ref('')
 const filters = ref({
   fecha: { desde: null, hasta: null },
   servicio: null,
   idioma: null,
   guia: null,
   chofer: null,
+  responsable: null,
 })
 
 const idiomaOptions = [
@@ -156,6 +174,12 @@ const columns = [
     align: 'left',
   },
   {
+    name: 'responsable',
+    label: 'Responsable',
+    field: 'responsable_nombre',
+    align: 'left',
+  },
+  {
     name: 'cant_servicios',
     label: 'Cant. Servicios',
     field: (row) => row.detalles?.length || 0,
@@ -198,6 +222,9 @@ const loadOrdenes = async (props) => {
     if (filters.value.chofer) {
       params.chofer = filters.value.chofer?.id || filters.value.chofer
     }
+    if (filters.value.responsable) {
+      params.responsable = filters.value.responsable?.id || filters.value.responsable
+    }
 
     const response = await api.get('reservas/ordenes-servicio/', { params })
     ordenes.value = response.data.results
@@ -220,6 +247,19 @@ const onRequest = (props) => loadOrdenes(props)
 
 const viewOrden = (orden) => {
   router.push(`/informes/ordenes-servicio/${orden.id}`)
+}
+
+const printOrden = async (orden) => {
+  try {
+    const response = await api.get(`reservas/ordenes-servicio/${orden.id}/pdf/`, {
+      responseType: 'blob',
+    })
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    pdfUrl.value = URL.createObjectURL(blob)
+    showPdfDialog.value = true
+  } catch {
+    notifyError('Error al generar el PDF')
+  }
 }
 
 const deleteOrden = async (orden) => {

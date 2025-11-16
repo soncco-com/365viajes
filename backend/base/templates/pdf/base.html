@@ -8,15 +8,19 @@
   <body>
     {% if include_header %}
     <div class="header">
-      {% if logo_path %}
-      <img src="{{ logo_path }}" alt="Logo" />
-      {% endif %}
-      <h1>{{ opciones.nombre_empresa|default:"365 Viajes" }}</h1>
-      {% if opciones.direccion %}
-      <p>{{ opciones.direccion }}</p>
-      {% endif %} {% if opciones.telefonos %}
-      <p>Teléfono: {{ opciones.telefonos }}</p>
-      {% endif %}
+      <div class="header-left">
+        {% if logo_path %}
+        <img src="{{ logo_path }}" alt="Logo" />
+        {% endif %}
+      </div>
+      <div class="header-right">
+        <h1>{{ opciones.nombre_empresa|default:"365 Viajes" }}</h1>
+        {% if opciones.direccion %}
+        <p>{{ opciones.direccion }}</p>
+        {% endif %} {% if opciones.telefonos %}
+        <p>Tel: {{ opciones.telefonos }}</p>
+        {% endif %}
+      </div>
     </div>
     <hr />
     {% endif %} {% block content %}{% endblock %}

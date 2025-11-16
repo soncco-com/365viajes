@@ -7,11 +7,7 @@
       <q-card-section>
         <div class="row q-col-gutter-md">
           <div class="col-12 col-md-4">
-            <date-range-picker
-              v-model:desde="filters.fecha_desde"
-              v-model:hasta="filters.fecha_hasta"
-              label="Rango de fechas"
-            />
+            <date-range-picker v-model="filters.fechas" label="Rango de fechas" />
           </div>
           <div class="col-12 col-md-3">
             <autocomplete-input
@@ -137,12 +133,10 @@
           <q-form @submit="saveOrdenServicio" class="q-gutter-md">
             <autocomplete-input
               v-model="ordenForm.guia"
-              label="Guía"
+              label="Guía *"
               endpoint="base/guias"
               option-label="nombre"
-              option-value="id"
               :rules="[(val) => !!val || 'El guía es requerido']"
-              required
             />
 
             <autocomplete-input
@@ -150,13 +144,20 @@
               label="Chofer"
               endpoint="base/choferes"
               option-label="nombre"
-              option-value="id"
+            />
+
+            <autocomplete-input
+              v-model="ordenForm.responsable"
+              label="Responsable"
+              endpoint="base/responsables"
+              option-label="nombre"
             />
 
             <q-input
               v-model="ordenForm.observaciones"
               label="Observaciones"
-              filled
+              outlined
+              dense
               type="textarea"
               rows="3"
             />
@@ -196,8 +197,7 @@ const showOrdenDialog = ref(false)
 const savingOrden = ref(false)
 
 const filters = ref({
-  fecha_desde: '',
-  fecha_hasta: '',
+  fechas: { desde: null, hasta: null },
   servicio_id: null,
   seleccionado: null,
 })
@@ -210,14 +210,15 @@ const seleccionadoOptions = [
 const ordenForm = ref({
   guia: null,
   chofer: null,
+  responsable: null,
   observaciones: '',
 })
 
 const columns = [
   {
     name: 'fecha',
-    label: 'Fecha',
-    field: 'reserva_fecha',
+    label: 'Fecha Servicio',
+    field: 'cuando',
     align: 'left',
     sortable: true,
     format: (val) => {
@@ -274,7 +275,7 @@ const columns = [
 ]
 
 const pagination = ref({
-  sortBy: 'reserva_fecha',
+  sortBy: 'cuando',
   descending: false,
   page: 1,
   rowsPerPage: 20,
@@ -301,16 +302,20 @@ const loadDetalles = async (props) => {
       ordering: (descending ? '-' : '') + sortBy,
     }
 
-    if (filters.value.fecha_desde && filters.value.fecha_hasta) {
-      params.fecha__range = `${filters.value.fecha_desde},${filters.value.fecha_hasta}`
-    } else if (filters.value.fecha_desde) {
-      params.fecha__gte = filters.value.fecha_desde
-    } else if (filters.value.fecha_hasta) {
-      params.fecha__lte = filters.value.fecha_hasta
+    if (filters.value.fechas.desde && filters.value.fechas.hasta) {
+      params.fecha__range = `${filters.value.fechas.desde},${filters.value.fechas.hasta}`
+    } else if (filters.value.fechas.desde) {
+      params.fecha__gte = filters.value.fechas.desde
+    } else if (filters.value.fechas.hasta) {
+      params.fecha__lte = filters.value.fechas.hasta
     }
 
     if (filters.value.servicio_id) {
-      params.servicio = filters.value.servicio_id
+      // Extraer solo el ID si es un objeto
+      params.servicio =
+        typeof filters.value.servicio_id === 'object'
+          ? filters.value.servicio_id.id
+          : filters.value.servicio_id
     }
 
     if (filters.value.seleccionado !== null && filters.value.seleccionado !== undefined) {
@@ -342,8 +347,7 @@ const onRequest = (props) => {
 
 const clearFilters = () => {
   filters.value = {
-    fecha_desde: '',
-    fecha_hasta: '',
+    fechas: { desde: null, hasta: null },
     servicio_id: null,
     seleccionado: null,
   }
@@ -367,6 +371,7 @@ const createOrdenServicio = () => {
   ordenForm.value = {
     guia: null,
     chofer: null,
+    responsable: null,
     observaciones: '',
   }
   showOrdenDialog.value = true
@@ -385,11 +390,12 @@ const saveOrdenServicio = async () => {
     const firstDetail = selectedDetalles.value[0]
 
     const payload = {
-      fecha: firstDetail.reserva_fecha,
+      fecha: firstDetail.cuando,
       servicio: firstDetail.servicio_id,
       idioma: firstDetail.idioma,
       guia: ordenForm.value.guia?.id || ordenForm.value.guia,
       chofer: ordenForm.value.chofer?.id || ordenForm.value.chofer,
+      responsable: ordenForm.value.responsable?.id || ordenForm.value.responsable,
       observaciones: ordenForm.value.observaciones,
       detalles_ids: selectedDetalles.value.map((d) => d.id),
     }
@@ -411,8 +417,7 @@ const saveOrdenServicio = async () => {
 onMounted(() => {
   // Cargar detalles de hoy por defecto
   const today = new Date().toISOString().split('T')[0]
-  filters.value.fecha_desde = today
-  filters.value.fecha_hasta = today
+  filters.value.fechas = { desde: today, hasta: today }
   loadDetalles()
 })
 </script>

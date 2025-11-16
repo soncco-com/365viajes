@@ -4,8 +4,8 @@ Serializers para el app base
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
-    OpcionGeneral, Auditoria, Lugar, Formato, Servicio,
-    Adicional, Cliente, Horario, Guia, Chofer,
+    OpcionGeneral, Auditoria, Lugar, Servicio,
+    Adicional, Cliente, Chofer, Guia, Horario, Responsable,
     ServicioPrecioEspecial, ServicioParada
 )
 
@@ -37,13 +37,10 @@ class LugarSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class FormatoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Formato
-        fields = '__all__'
-
-
 class ServicioParadaSerializer(serializers.ModelSerializer):
+    servicio_nombre = serializers.CharField(
+        source='servicio.nombre', read_only=True)
+
     class Meta:
         model = ServicioParada
         fields = '__all__'
@@ -61,8 +58,6 @@ class ServicioPrecioEspecialSerializer(serializers.ModelSerializer):
 
 
 class ServicioSerializer(serializers.ModelSerializer):
-    formato_nombre = serializers.CharField(
-        source='formato.nombre', read_only=True)
     paradas = ServicioParadaSerializer(many=True, read_only=True)
     precios_especiales_activos = serializers.SerializerMethodField()
 
@@ -110,6 +105,12 @@ class ChoferSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ResponsableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Responsable
+        fields = '__all__'
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Serializer para el modelo User"""
     grupos = serializers.SerializerMethodField()
@@ -148,3 +149,9 @@ class UserSerializer(serializers.ModelSerializer):
             instance.groups.set(groups)
         instance.save()
         return instance
+
+
+class GroupSerializer(serializers.Serializer):
+    """Serializer para el modelo Group"""
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(max_length=150)
