@@ -58,6 +58,71 @@
       </q-card-section>
     </q-card>
 
+    <!-- Card de logo del sistema -->
+    <q-card class="q-mt-md">
+      <q-card-section>
+        <div class="row items-center q-mb-md">
+          <div class="col">
+            <div class="text-h6">Logo del Sistema</div>
+            <div class="text-caption text-grey-7">
+              Personaliza el logo que se muestra en el login, menú y PDFs
+            </div>
+          </div>
+        </div>
+
+        <div class="row q-gutter-md items-center">
+          <div class="col-12 col-md-auto">
+            <div class="logo-preview" :class="{ 'has-logo': logoPreview }">
+              <img v-if="logoPreview" :src="logoPreview" alt="Logo actual" />
+              <div v-else class="no-logo">
+                <q-icon name="image" size="48px" color="grey-5" />
+                <div class="text-caption text-grey-6 q-mt-sm">Sin logo</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col">
+            <q-file
+              v-model="logoFile"
+              outlined
+              dense
+              accept="image/*"
+              label="Seleccionar imagen"
+              max-file-size="2048000"
+              @update:model-value="onLogoSelected"
+            >
+              <template v-slot:prepend>
+                <q-icon name="attach_file" />
+              </template>
+            </q-file>
+            <div class="text-caption text-grey-7 q-mt-xs">
+              Formatos permitidos: JPG, PNG, SVG. Tamaño máximo: 2MB
+            </div>
+            <div class="q-mt-md">
+              <q-btn
+                color="primary"
+                label="Guardar Logo"
+                icon="save"
+                :disable="!logoFile || savingLogo"
+                :loading="savingLogo"
+                @click="guardarLogo"
+              />
+              <q-btn
+                v-if="logoPreview"
+                flat
+                color="negative"
+                label="Eliminar Logo"
+                icon="delete"
+                class="q-ml-sm"
+                :disable="savingLogo"
+                @click="eliminarLogo"
+              />
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
     <!-- Card de información -->
     <q-card class="q-mt-md bg-blue-1">
       <q-card-section>
@@ -88,6 +153,9 @@ const { notifySuccess, notifyError } = useNotify()
 const configuraciones = ref([])
 const loading = ref(false)
 const saving = ref(null)
+const logoFile = ref(null)
+const logoPreview = ref('')
+const savingLogo = ref(false)
 
 const loadConfiguraciones = async () => {
   loading.value = true
@@ -102,6 +170,17 @@ const loadConfiguraciones = async () => {
     console.error(error)
   } finally {
     loading.value = false
+  }
+}
+
+const loadLogo = async () => {
+  try {
+    const response = await api.get('base/opciones-generales/logo/')
+    if (response.data.valor) {
+      logoPreview.value = response.data.valor
+    }
+  } catch {
+    // No hacer nada si no hay logo
   }
 }
 
@@ -125,7 +204,97 @@ const guardarConfiguracion = async (config) => {
   }
 }
 
+const onLogoSelected = (file) => {
+  if (!file) {
+    logoPreview.value = ''
+    return
+  }
+
+  // Crear preview
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    logoPreview.value = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const guardarLogo = async () => {
+  if (!logoFile.value) return
+
+  savingLogo.value = true
+  try {
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        await api.post('base/opciones-generales/logo/', {
+          logo: e.target.result,
+        })
+        notifySuccess('Logo guardado correctamente')
+        logoFile.value = null
+        await loadLogo()
+      } catch (error) {
+        notifyError('Error al guardar el logo')
+        console.error(error)
+      } finally {
+        savingLogo.value = false
+      }
+    }
+    reader.readAsDataURL(logoFile.value)
+  } catch (error) {
+    notifyError('Error al procesar el logo')
+    console.error(error)
+    savingLogo.value = false
+  }
+}
+
+const eliminarLogo = async () => {
+  savingLogo.value = true
+  try {
+    await api.post('base/opciones-generales/logo/', {
+      logo: '',
+    })
+    notifySuccess('Logo eliminado correctamente')
+    logoPreview.value = ''
+    logoFile.value = null
+  } catch (error) {
+    notifyError('Error al eliminar el logo')
+    console.error(error)
+  } finally {
+    savingLogo.value = false
+  }
+}
+
 onMounted(() => {
   loadConfiguraciones()
+  loadLogo()
 })
 </script>
+
+<style scoped>
+.logo-preview {
+  width: 150px;
+  height: 150px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  overflow: hidden;
+}
+
+.logo-preview.has-logo {
+  border-style: solid;
+  border-color: #4caf50;
+}
+
+.logo-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.no-logo {
+  text-align: center;
+}
+</style>

@@ -12,7 +12,7 @@
             <autocomplete-input
               v-model="filters.usuario"
               label="Usuario"
-              endpoint="base/usuarios"
+              endpoint="base/usuarios/"
               option-label="username"
             />
           </div>
@@ -21,7 +21,8 @@
               v-model="filters.accion"
               :options="accionOptions"
               label="Acción"
-              filled
+              outlined
+              dense
               emit-value
               map-options
               clearable
@@ -41,7 +42,7 @@
     </q-card>
 
     <data-table
-      :rows="logs"
+      :rows="registros"
       :columns="columns"
       :loading="loading"
       :pagination="pagination"
@@ -53,7 +54,7 @@
       <template v-slot:body-cell-accion="props">
         <q-td :props="props">
           <q-badge :color="getAccionColor(props.row.accion)">
-            {{ props.row.accion }}
+            {{ props.row.accion_display || props.row.accion }}
           </q-badge>
         </q-td>
       </template>
@@ -86,9 +87,9 @@
             <div class="col-3">
               <div class="text-grey-7">Acción:</div>
               <div>
-                <q-badge :color="getAccionColor(selectedRegistro.accion)">{{
-                  selectedRegistro.accion
-                }}</q-badge>
+                <q-badge :color="getAccionColor(selectedRegistro.accion)">
+                  {{ selectedRegistro.accion_display || selectedRegistro.accion }}
+                </q-badge>
               </div>
             </div>
             <div class="col-3">
@@ -147,11 +148,11 @@ const registros = ref([])
 const loading = ref(false)
 const showDetailDialog = ref(false)
 const selectedRegistro = ref(null)
-const filters = ref({ fecha: { from: null, to: null }, usuario: null, accion: null })
+const filters = ref({ fecha: { desde: null, hasta: null }, usuario: null, accion: null })
 const accionOptions = [
-  { label: 'Crear', value: 'CREATE' },
-  { label: 'Actualizar', value: 'UPDATE' },
-  { label: 'Eliminar', value: 'DELETE' },
+  { label: 'Creación', value: 'C' },
+  { label: 'Edición', value: 'E' },
+  { label: 'Eliminación', value: 'D' },
 ]
 
 const columns = [
@@ -203,11 +204,11 @@ function formatJson(data) {
 
 function getAccionColor(accion) {
   switch (accion) {
-    case 'CREATE':
+    case 'C':
       return 'positive'
-    case 'UPDATE':
-      return 'info'
-    case 'DELETE':
+    case 'E':
+      return 'warning'
+    case 'D':
       return 'negative'
     default:
       return 'grey'
@@ -224,9 +225,9 @@ const loadAuditoria = async (props) => {
       ordering: (descending ? '-' : '') + sortBy,
     }
 
-    if (filters.value.fecha.from && filters.value.fecha.to) {
-      params.fecha__gte = filters.value.fecha.from
-      params.fecha__lte = filters.value.fecha.to
+    if (filters.value.fecha.desde && filters.value.fecha.hasta) {
+      params.fecha__gte = filters.value.fecha.desde
+      params.fecha__lte = filters.value.fecha.hasta
     }
     if (filters.value.usuario) {
       params.usuario = filters.value.usuario?.id || filters.value.usuario
@@ -261,7 +262,7 @@ const viewDetalle = (registro) => {
 
 onMounted(() => {
   const today = new Date().toISOString().split('T')[0]
-  filters.value.fecha = { from: today, to: today }
+  filters.value.fecha = { desde: today, hasta: today }
   loadAuditoria()
 })
 </script>

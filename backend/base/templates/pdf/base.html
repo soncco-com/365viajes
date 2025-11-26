@@ -3,26 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Reporte{% endblock %}</title>
+    <title>
+      {% block title %}
+        Reporte
+      {% endblock %}
+    </title>
   </head>
   <body>
     {% if include_header %}
-    <div class="header">
-      <div class="header-left">
-        {% if logo_path %}
-        <img src="{{ logo_path }}" alt="Logo" />
-        {% endif %}
+      <div class="header">
+        <div class="header-left">
+          {% if logo_base64 %}
+            <img src="{{ logo_base64 }}" alt="Logo" />
+          {% endif %}
+        </div>
+        <div class="header-right">
+          <h1>{{ opciones.nombre_empresa|default:'365 Viajes' }}</h1>
+          {% if opciones.telefonos %}
+            <p>Tel: {{ opciones.telefonos }}</p>
+          {% endif %}
+        </div>
       </div>
-      <div class="header-right">
-        <h1>{{ opciones.nombre_empresa|default:"365 Viajes" }}</h1>
-        {% if opciones.direccion %}
-        <p>{{ opciones.direccion }}</p>
-        {% endif %} {% if opciones.telefonos %}
-        <p>Tel: {{ opciones.telefonos }}</p>
-        {% endif %}
-      </div>
-    </div>
-    <hr />
-    {% endif %} {% block content %}{% endblock %}
+      <hr />
+    {% endif %} {% block content %}
+    {% endblock %}
   </body>
 </html>

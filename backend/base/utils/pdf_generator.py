@@ -36,16 +36,16 @@ class PDFGenerator:
         from base.models import OpcionGeneral
 
         opciones = {}
+        logo_base64 = ''
+
         for opcion in OpcionGeneral.objects.all():
             opciones[opcion.clave] = opcion.valor
-
-        # Path del logo (ajustar según la ubicación real)
-        logo_path = self.get_static_path('logo.png') if os.path.exists(
-            self.get_static_path('logo.png')) else ''
+            if opcion.clave == 'logo_sistema':
+                logo_base64 = opcion.valor
 
         return {
             'opciones': opciones,
-            'logo_path': logo_path,
+            'logo_base64': logo_base64,  # Logo en base64 para embeber en el PDF
             'orientation': self.orientation,
             'include_header': self.include_header,
         }

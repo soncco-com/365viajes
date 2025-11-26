@@ -13,10 +13,21 @@
           @click="leftDrawerOpen = !leftDrawerOpen"
         />
 
-        <q-toolbar-title class="text-weight-bold"> 365 Viajes </q-toolbar-title>
+        <!-- Logo y título -->
+        <div class="row items-center q-gutter-sm cursor-pointer" @click="goToDashboard">
+          <img
+            v-if="logoUrl"
+            :src="logoUrl"
+            alt="Logo"
+            style="height: 40px; max-width: 150px; object-fit: contain"
+          />
+          <q-toolbar-title class="text-weight-bold"> 365 Viajes </q-toolbar-title>
+        </div>
+
+        <q-space />
 
         <!-- Menú de navegación (solo desktop) -->
-        <q-tabs v-if="isAuthenticated && $q.screen.gt.sm" align="right" inline-label shrink>
+        <q-tabs v-if="isAuthenticated && $q.screen.gt.sm" inline-label shrink>
           <!-- Reservas con dropdown -->
           <q-btn-dropdown flat label="Reservas" icon="event_note" dropdown-icon="expand_more">
             <q-list>
@@ -619,16 +630,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from 'src/composables/useAuth'
+import { useApi } from 'src/composables/useApi'
 import { useQuasar } from 'quasar'
 
 const $q = useQuasar()
 const router = useRouter()
+const api = useApi()
 const { isAuthenticated, currentUser, logout, isAdmin: adminRole } = useAuth()
 
 const leftDrawerOpen = ref(false)
+const logoUrl = ref('')
 const currentYear = new Date().getFullYear()
 
 const userName = computed(() => {
@@ -638,6 +652,27 @@ const userName = computed(() => {
 
 const isAdmin = computed(() => {
   return adminRole.value
+})
+
+const loadLogo = async () => {
+  try {
+    const response = await api.get('base/opciones-generales/logo/')
+    if (response.data.valor) {
+      logoUrl.value = response.data.valor
+    }
+  } catch {
+    // No hacer nada si no hay logo configurado
+  }
+}
+
+const goToDashboard = () => {
+  router.push('/')
+}
+
+onMounted(() => {
+  if (isAuthenticated.value) {
+    loadLogo()
+  }
 })
 
 const handleLogout = async () => {

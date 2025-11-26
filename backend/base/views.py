@@ -37,14 +37,48 @@ class OpcionGeneralViewSet(viewsets.ModelViewSet):
     ordering_fields = '__all__'
 
     def get_permissions(self):
-        """Las opciones públicas no requieren autenticación"""
-        if self.action == 'list' and self.request.query_params.get('es_publica') == 'true':
+        """Las opciones públicas no requieren autenticación y el endpoint del logo es público"""
+        if self.action in ['logo'] or (self.action == 'list' and self.request.query_params.get('es_publica') == 'true'):
             return [AllowAny()]
         return [IsAuthenticated()]
 
     @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @action(detail=False, methods=['get', 'post'], url_path='logo')
+    def logo(self, request):
+        """
+        GET: Obtiene el logo del sistema (base64)
+        POST: Actualiza el logo del sistema (base64)
+        """
+        if request.method == 'GET':
+            try:
+                opcion = OpcionGeneral.objects.get(clave='logo_sistema')
+                return Response({'valor': opcion.valor})
+            except OpcionGeneral.DoesNotExist:
+                return Response({'valor': ''}, status=status.HTTP_200_OK)
+
+        elif request.method == 'POST':
+            logo_data = request.data.get('logo')
+            if not logo_data:
+                return Response({'error': 'No se proporcionó el logo'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar que sea una imagen base64 válida
+            if not logo_data.startswith('data:image/'):
+                return Response({'error': 'El logo debe ser una imagen en formato base64'}, status=status.HTTP_400_BAD_REQUEST)
+
+            opcion, _ = OpcionGeneral.objects.get_or_create(
+                clave='logo_sistema',
+                defaults={
+                    'descripcion': 'Logo del sistema en formato base64',
+                    'es_publica': True
+                }
+            )
+            opcion.valor = logo_data
+            opcion.save()
+
+            return Response({'message': 'Logo actualizado correctamente', 'valor': logo_data}, status=status.HTTP_200_OK)
 
 
 class AuditoriaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -57,7 +91,12 @@ class AuditoriaViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AuditoriaSerializer
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['accion', 'usuario', 'content_type', 'fecha']
+    filterset_fields = {
+        'accion': ['exact'],
+        'usuario': ['exact'],
+        'content_type': ['exact'],
+        'fecha': ['exact', 'gte', 'lte', 'range'],
+    }
     search_fields = ['usuario__username', 'datos_anteriores', 'datos_nuevos']
     ordering_fields = '__all__'
     ordering = ['-fecha']
