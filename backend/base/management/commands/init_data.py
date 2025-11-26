@@ -3,7 +3,7 @@ Comando para inicializar datos de prueba del sistema
 """
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
-from base.models import OpcionGeneral, Cliente, Lugar, Formato, Servicio, Adicional, Guia, Chofer
+from base.models import OpcionGeneral, Cliente, Lugar, Servicio, Adicional, Guia, Chofer
 from decimal import Decimal
 from datetime import date
 
