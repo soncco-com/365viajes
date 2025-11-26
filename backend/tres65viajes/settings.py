@@ -184,13 +184,13 @@ if USE_REDIS:
         REDIS_USER = config('REDIS_USER', default='')
         REDIS_PASSWORD = config('REDIS_PASSWORD', default='')
         REDIS_PORT = config('REDIS_PORT', default='6379')
-        
+
         # Construir URL de Redis
         if REDIS_USER and REDIS_PASSWORD:
             redis_url = f'redis://{REDIS_USER}:{REDIS_PASSWORD}@{REDIS_SERVER}:{REDIS_PORT}/0'
         else:
             redis_url = f'redis://{REDIS_SERVER}:{REDIS_PORT}/0'
-        
+
         CACHES = {
             'default': {
                 'BACKEND': 'django_redis.cache.RedisCache',
@@ -202,7 +202,7 @@ if USE_REDIS:
                 }
             }
         }
-        
+
         # Verificar conexión a Redis
         from django_redis import get_redis_connection
         try:
