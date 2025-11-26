@@ -176,15 +176,20 @@ CORS_ALLOW_HEADERS = (
 
 try:
     REDIS_SERVER = config('REDIS_SERVER')
+    REDIS_USER = config('REDIS_USER')
+    REDIS_PASSWORD = config('REDIS_PASSWORD')
+    REDIS_PORT = config('REDIS_PORT')
 except:
     REDIS_SERVER = '127.0.0.1'
 
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://%s:6379/1' % REDIS_SERVER,
+        'LOCATION': 'redis://%s:%s@%s:%s/0' % (REDIS_USER, REDIS_PASSWORD, REDIS_SERVER, REDIS_PORT),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": REDIS_PASSWORD,
+            "SSL": True,
         }
     }
 }
