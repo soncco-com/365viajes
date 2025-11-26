@@ -174,22 +174,57 @@ CORS_ALLOW_HEADERS = (
     "content-type"
 )
 
-try:
-    REDIS_SERVER = config('REDIS_SERVER')
-    REDIS_USER = config('REDIS_USER')
-    REDIS_PASSWORD = config('REDIS_PASSWORD')
-    REDIS_PORT = config('REDIS_PORT')
-except:
-    REDIS_SERVER = '127.0.0.1'
+# Configuración de caché con fallback
+# Intenta usar Redis si está disponible, sino usa cache en memoria local
+USE_REDIS = config('USE_REDIS', default=False, cast=bool)
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://%s:%s@%s:%s/0' % (REDIS_USER, REDIS_PASSWORD, REDIS_SERVER, REDIS_PORT),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": REDIS_PASSWORD,
-            "SSL": True,
+if USE_REDIS:
+    try:
+        REDIS_SERVER = config('REDIS_SERVER')
+        REDIS_USER = config('REDIS_USER', default='')
+        REDIS_PASSWORD = config('REDIS_PASSWORD', default='')
+        REDIS_PORT = config('REDIS_PORT', default='6379')
+        
+        # Construir URL de Redis
+        if REDIS_USER and REDIS_PASSWORD:
+            redis_url = f'redis://{REDIS_USER}:{REDIS_PASSWORD}@{REDIS_SERVER}:{REDIS_PORT}/0'
+        else:
+            redis_url = f'redis://{REDIS_SERVER}:{REDIS_PORT}/0'
+        
+        CACHES = {
+            'default': {
+                'BACKEND': 'django_redis.cache.RedisCache',
+                'LOCATION': redis_url,
+                "OPTIONS": {
+                    "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                    "SOCKET_CONNECT_TIMEOUT": 2,  # Timeout de 2 segundos
+                    "SOCKET_TIMEOUT": 2,
+                }
+            }
+        }
+        
+        # Verificar conexión a Redis
+        from django_redis import get_redis_connection
+        try:
+            get_redis_connection("default").ping()
+            print("✓ Conectado a Redis exitosamente")
+        except Exception as e:
+            print(f"⚠ No se pudo conectar a Redis: {e}")
+            print("→ Usando cache en memoria local (LocMemCache)")
+            USE_REDIS = False
+    except Exception as e:
+        print(f"⚠ Error en configuración de Redis: {e}")
+        print("→ Usando cache en memoria local (LocMemCache)")
+        USE_REDIS = False
+
+if not USE_REDIS:
+    # Cache en memoria local (no requiere servicios externos)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+            'OPTIONS': {
+                'MAX_ENTRIES': 1000
+            }
         }
     }
-}
