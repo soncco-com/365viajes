@@ -73,35 +73,17 @@ class Command(BaseCommand):
             )
         self.stdout.write(self.style.SUCCESS('✓ Lugares (hoteles) creados'))
 
-        # Crear formatos
-        formatos_data = [
-            {'nombre': 'Tour Grupal', 'descripcion': 'Tour en grupo con guía compartido'},
-            {'nombre': 'Tour Privado', 'descripcion': 'Tour privado con guía exclusivo'},
-            {'nombre': 'Tour Express', 'descripcion': 'Tour rápido de medio día'},
-        ]
-
-        for formato_data in formatos_data:
-            Formato.objects.get_or_create(
-                nombre=formato_data['nombre'],
-                defaults=formato_data
-            )
-        self.stdout.write(self.style.SUCCESS('✓ Formatos creados'))
-
-        # Crear servicios
-        formato_grupal = Formato.objects.get(nombre='Tour Grupal')
-        formato_privado = Formato.objects.get(nombre='Tour Privado')
-
         servicios_data = [
             {'nombre': 'City Tour Cusco', 'precio': Decimal(
-                '35.00'), 'formato': formato_grupal, 'activo': True},
+                '35.00'), 'activo': True},
             {'nombre': 'Valle Sagrado', 'precio': Decimal(
-                '45.00'), 'formato': formato_grupal, 'activo': True},
+                '45.00'), 'activo': True},
             {'nombre': 'Machu Picchu Full Day', 'precio': Decimal(
-                '120.00'), 'formato': formato_grupal, 'activo': True},
+                '120.00'), 'activo': True},
             {'nombre': 'Montaña de Colores', 'precio': Decimal(
-                '40.00'), 'formato': formato_grupal, 'activo': True},
+                '40.00'), 'activo': True},
             {'nombre': 'City Tour Privado', 'precio': Decimal(
-                '80.00'), 'formato': formato_privado, 'activo': True},
+                '80.00'), 'activo': True},
         ]
 
         for servicio_data in servicios_data:
