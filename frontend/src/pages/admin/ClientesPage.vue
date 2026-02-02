@@ -54,6 +54,7 @@
       :columns="columns"
       :loading="loading"
       :pagination="pagination"
+      :rows-number="pagination.rowsNumber"
       @request="onRequest"
       create-button
       create-label="Nueva Agencia"

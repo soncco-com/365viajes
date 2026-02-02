@@ -152,19 +152,50 @@ const loadOptions = async () => {
   }
 }
 
-const filterFn = (val, update) => {
+const filterFn = async (val, update, abort) => {
   currentSearchText.value = val
 
-  update(() => {
-    if (val === '') {
-      filteredOptions.value = allOptions.value
-    } else {
-      const needle = val.toLowerCase()
-      filteredOptions.value = allOptions.value.filter(
-        (v) => v[props.optionLabel] && v[props.optionLabel].toLowerCase().indexOf(needle) > -1,
-      )
+  // Si hay endpoint, buscar en el servidor
+  if (props.endpoint) {
+    if (val.length < 1) {
+      update(() => {
+        filteredOptions.value = allOptions.value
+      })
+      return
     }
-  })
+
+    try {
+      loading.value = true
+      const params = { search: val }
+      if (props.filterActivos) {
+        params.activo = true
+      }
+
+      const response = await api.get(props.endpoint, { params })
+      const results = response.data.results || response.data
+
+      update(() => {
+        filteredOptions.value = results
+      })
+    } catch (error) {
+      console.error('Error searching options:', error)
+      abort()
+    } finally {
+      loading.value = false
+    }
+  } else {
+    // Filtrado local para opciones estáticas
+    update(() => {
+      if (val === '') {
+        filteredOptions.value = allOptions.value
+      } else {
+        const needle = val.toLowerCase()
+        filteredOptions.value = allOptions.value.filter(
+          (v) => v[props.optionLabel] && v[props.optionLabel].toLowerCase().indexOf(needle) > -1,
+        )
+      }
+    })
+  }
 
   emit('filter', val)
 }

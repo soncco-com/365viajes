@@ -1,10 +1,11 @@
 <template>
   <q-table
+    v-model:pagination="internalPagination"
     :rows="rows"
     :columns="columns"
     :loading="loading"
     :filter="filter"
-    :pagination="pagination"
+    :rows-number="rowsNumber"
     @request="onRequest"
     row-key="id"
     binary-state-sort
@@ -172,14 +173,34 @@ const props = defineProps({
       descending: false,
       page: 1,
       rowsPerPage: 10,
+      rowsNumber: 0,
     }),
+  },
+  pagination: {
+    type: Object,
+    default: null,
+  },
+  rowsNumber: {
+    type: Number,
+    default: 0,
   },
 })
 
 const emit = defineEmits(['request', 'create', 'edit', 'delete', 'update:filter'])
 
 const filter = ref('')
-const pagination = ref(props.initialPagination)
+const internalPagination = ref({ ...props.initialPagination })
+
+// Sincronizar paginación interna con la prop cuando cambie
+watch(
+  () => props.pagination,
+  (newVal) => {
+    if (newVal) {
+      internalPagination.value = { ...newVal }
+    }
+  },
+  { deep: true, immediate: true },
+)
 
 const onRequest = (requestProps) => {
   emit('request', requestProps)

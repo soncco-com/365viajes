@@ -1,3 +1,4 @@
+name: viajes
 services:
   db:
     image: mysql:8
