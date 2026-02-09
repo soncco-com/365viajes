@@ -128,6 +128,21 @@
                   <q-item-label>Hoteles</q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item clickable v-close-popup to="/admin/horarios" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="schedule" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Horarios</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-separator spaced />
+
+              <!-- Adicionales -->
+              <q-item-label header class="text-weight-bold text-grey-8">
+                <q-icon name="add_box" size="18px" class="q-mr-xs" /> Adicionales
+              </q-item-label>
               <q-item clickable v-close-popup to="/admin/adicionales" class="q-pl-md">
                 <q-item-section avatar>
                   <q-icon name="add_box" size="20px" />
@@ -136,12 +151,17 @@
                   <q-item-label>Adicionales</q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item clickable v-close-popup to="/admin/horarios" class="q-pl-md">
+              <q-item
+                clickable
+                v-close-popup
+                to="/admin/precios-especiales-adicionales"
+                class="q-pl-md"
+              >
                 <q-item-section avatar>
-                  <q-icon name="schedule" size="20px" />
+                  <q-icon name="sell" size="20px" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Horarios</q-item-label>
+                  <q-item-label>Precios Especiales</q-item-label>
                 </q-item-section>
               </q-item>
 
@@ -427,6 +447,25 @@
             <q-item
               clickable
               v-ripple
+              to="/admin/horarios"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="schedule" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Horarios</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <!-- Adicionales -->
+            <q-item-label header class="q-pl-lg text-weight-bold text-grey-8">
+              Adicionales
+            </q-item-label>
+            <q-item
+              clickable
+              v-ripple
               to="/admin/adicionales"
               @click="leftDrawerOpen = false"
               class="q-pl-xl"
@@ -441,15 +480,15 @@
             <q-item
               clickable
               v-ripple
-              to="/admin/horarios"
+              to="/admin/precios-especiales-adicionales"
               @click="leftDrawerOpen = false"
               class="q-pl-xl"
             >
               <q-item-section avatar>
-                <q-icon name="schedule" />
+                <q-icon name="sell" />
               </q-item-section>
               <q-item-section>
-                <q-item-label>Horarios</q-item-label>
+                <q-item-label>Precios Especiales</q-item-label>
               </q-item-section>
             </q-item>
 

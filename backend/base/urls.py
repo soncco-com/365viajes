@@ -8,7 +8,8 @@ from .views import (
     ServicioViewSet, AdicionalViewSet,
     ClienteViewSet, ChoferViewSet, GuiaViewSet, HorarioViewSet,
     ResponsableViewSet, UserViewSet, GroupViewSet,
-    ServicioPrecioEspecialViewSet, ServicioParadaViewSet
+    ServicioPrecioEspecialViewSet, ServicioParadaViewSet,
+    AdicionalPrecioEspecialViewSet
 )
 
 router = DefaultRouter()
@@ -29,6 +30,8 @@ router.register(r'servicio-precios-especiales',
                 ServicioPrecioEspecialViewSet, basename='servicio-precio-especial')
 router.register(r'servicio-paradas', ServicioParadaViewSet,
                 basename='servicio-parada')
+router.register(r'adicional-precios-especiales',
+                AdicionalPrecioEspecialViewSet, basename='adicional-precio-especial')
 
 urlpatterns = [
     path('', include(router.urls)),

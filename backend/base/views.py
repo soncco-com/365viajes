@@ -13,14 +13,15 @@ from django.utils.decorators import method_decorator
 from .models import (
     OpcionGeneral, Auditoria, Lugar, Servicio,
     Adicional, Cliente, Horario, Guia, Chofer, Responsable,
-    ServicioPrecioEspecial, ServicioParada
+    ServicioPrecioEspecial, ServicioParada, AdicionalPrecioEspecial
 )
 from .serializers import (
     OpcionGeneralSerializer, AuditoriaSerializer, LugarSerializer,
     ServicioSerializer, AdicionalSerializer,
     ClienteSerializer, ChoferSerializer, GuiaSerializer, HorarioSerializer,
     ResponsableSerializer, UserSerializer, GroupSerializer,
-    ServicioPrecioEspecialSerializer, ServicioParadaSerializer
+    ServicioPrecioEspecialSerializer, ServicioParadaSerializer,
+    AdicionalPrecioEspecialSerializer
 )
 
 
@@ -291,3 +292,16 @@ class ServicioParadaViewSet(viewsets.ModelViewSet):
     search_fields = ['nombre', 'descripcion']
     ordering_fields = '__all__'
     ordering = ['servicio', 'orden']
+
+
+class AdicionalPrecioEspecialViewSet(viewsets.ModelViewSet):
+    """ViewSet para Precios Especiales de Adicionales"""
+    queryset = AdicionalPrecioEspecial.objects.select_related(
+        'adicional', 'cliente').all()
+    serializer_class = AdicionalPrecioEspecialSerializer
+    filter_backends = [DjangoFilterBackend,
+                       filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['adicional', 'cliente', 'activo']
+    search_fields = ['adicional__nombre', 'cliente__nombre', 'observaciones']
+    ordering_fields = '__all__'
+    ordering = ['-fecha_desde']

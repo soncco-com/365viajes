@@ -140,6 +140,33 @@ class Adicional(models.Model):
         return '%s (%s)' % (self.nombre, self.fecha_precio.strftime('%m/%Y'))
 
 
+class AdicionalPrecioEspecial(models.Model):
+    """Precios especiales de adicionales para agencias específicas"""
+    adicional = models.ForeignKey(
+        Adicional, on_delete=models.CASCADE, related_name='precios_especiales')
+    cliente = models.ForeignKey(
+        'Cliente', on_delete=models.CASCADE, related_name='adicionales_precios_especiales')
+    precio = models.DecimalField(
+        max_digits=11, decimal_places=2,
+        help_text='Precio especial para esta agencia'
+    )
+    activo = models.BooleanField(default=True)
+    fecha_desde = models.DateField(
+        help_text='Fecha desde la cual aplica este precio')
+    fecha_hasta = models.DateField(
+        null=True, blank=True, help_text='Fecha hasta la cual aplica (opcional)')
+    observaciones = models.TextField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Precio Especial de Adicional'
+        verbose_name_plural = 'Precios Especiales de Adicionales'
+        unique_together = ['adicional', 'cliente']
+        ordering = ['-fecha_desde']
+
+    def __str__(self):
+        return f'{self.adicional.nombre} - {self.cliente.nombre}: S/ {self.precio}'
+
+
 class Cliente(models.Model):
     nombre = models.CharField(max_length=255)
     telefonos = models.CharField(max_length=30, blank=True, null=True)

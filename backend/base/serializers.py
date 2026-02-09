@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from .models import (
     OpcionGeneral, Auditoria, Lugar, Servicio,
     Adicional, Cliente, Chofer, Guia, Horario, Responsable,
-    ServicioPrecioEspecial, ServicioParada
+    ServicioPrecioEspecial, ServicioParada, AdicionalPrecioEspecial
 )
 
 
@@ -71,10 +71,28 @@ class ServicioSerializer(serializers.ModelSerializer):
         return ServicioPrecioEspecialSerializer(precios, many=True).data
 
 
+class AdicionalPrecioEspecialSerializer(serializers.ModelSerializer):
+    adicional_nombre = serializers.CharField(
+        source='adicional.nombre', read_only=True)
+    cliente_nombre = serializers.CharField(
+        source='cliente.nombre', read_only=True)
+
+    class Meta:
+        model = AdicionalPrecioEspecial
+        fields = '__all__'
+
+
 class AdicionalSerializer(serializers.ModelSerializer):
+    precios_especiales_activos = serializers.SerializerMethodField()
+
     class Meta:
         model = Adicional
         fields = '__all__'
+
+    def get_precios_especiales_activos(self, obj):
+        """Devuelve solo los precios especiales activos"""
+        precios = obj.precios_especiales.filter(activo=True)
+        return AdicionalPrecioEspecialSerializer(precios, many=True).data
 
 
 class ClienteSerializer(serializers.ModelSerializer):

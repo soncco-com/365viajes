@@ -328,12 +328,20 @@
                         label="Adicional *"
                         dense
                         class="q-mb-md"
-                        @update:model-value="calcularSubtotalAdicional(adicional)"
+                        @update:model-value="onAdicionalChange(adicional)"
                       >
                         <template v-slot:prepend>
                           <q-icon name="add_box" />
                         </template>
                       </autocomplete-input>
+
+                      <div
+                        v-if="adicional.observacion_precio"
+                        class="text-caption text-grey-7 q-mb-md"
+                      >
+                        <q-icon name="info" size="xs" />
+                        {{ adicional.observacion_precio }}
+                      </div>
 
                       <q-input
                         v-model.number="adicional.cantidad"
@@ -510,13 +518,22 @@
                           <q-item-section>
                             <q-item-label>{{ adicional.adicional?.nombre || 'N/A' }}</q-item-label>
                             <q-item-label caption>
-                              {{ adicional.cantidad }} x S/ {{ adicional.adicional?.precio || 0 }}
+                              {{ adicional.cantidad }} x S/
+                              {{ adicional.precio_aplicado || adicional.adicional?.precio || 0 }}
                               <q-badge
                                 v-if="!adicional.contable"
                                 color="negative"
                                 label="No contable"
                                 class="q-ml-sm"
                               />
+                            </q-item-label>
+                            <q-item-label
+                              caption
+                              v-if="adicional.observacion_precio"
+                              class="text-grey-7"
+                            >
+                              <q-icon name="info" size="xs" />
+                              {{ adicional.observacion_precio }}
                             </q-item-label>
                           </q-item-section>
                           <q-item-section side>
@@ -744,9 +761,64 @@ function calcularSubtotalServicio(detalle) {
   }
 }
 
+async function onAdicionalChange(adicional) {
+  // Buscar precio especial si hay cliente y adicional seleccionados
+  if (adicional.adicional?.id && reserva.value.cliente?.id) {
+    try {
+      const response = await api.get('base/adicional-precios-especiales/', {
+        params: {
+          adicional: adicional.adicional.id,
+          cliente: reserva.value.cliente.id,
+          activo: true,
+        },
+      })
+
+      const preciosEspeciales = response.data.results || []
+      const today = new Date().toISOString().split('T')[0]
+
+      // Filtrar por vigencia
+      const precioVigente = preciosEspeciales.find((precio) => {
+        const desde = precio.fecha_desde
+        const hasta = precio.fecha_hasta
+
+        if (!desde) return false
+        if (desde > today) return false
+        if (hasta && hasta < today) return false
+
+        return true
+      })
+
+      if (precioVigente) {
+        const precioNormal = parseFloat(adicional.adicional.precio)
+        const precioEspecial = parseFloat(precioVigente.precio)
+        const ahorro = precioNormal - precioEspecial
+        const porcentaje = ((ahorro / precioNormal) * 100).toFixed(1)
+
+        adicional.precio_aplicado = precioEspecial
+        adicional.observacion_precio = `Precio especial para ${reserva.value.cliente.nombre} (S/ ${precioNormal.toFixed(2)} → S/ ${precioEspecial.toFixed(2)}, ahorro: ${porcentaje}%)${
+          precioVigente.observaciones ? ' - ' + precioVigente.observaciones : ''
+        }`
+      } else {
+        adicional.precio_aplicado = parseFloat(adicional.adicional.precio)
+        adicional.observacion_precio = `Precio estándar: S/ ${adicional.adicional.precio} por unidad`
+      }
+    } catch (error) {
+      console.error('Error al consultar precios especiales:', error)
+      adicional.precio_aplicado = parseFloat(adicional.adicional.precio)
+      adicional.observacion_precio = `Precio estándar: S/ ${adicional.adicional.precio} por unidad`
+    }
+  } else if (adicional.adicional?.precio) {
+    adicional.precio_aplicado = parseFloat(adicional.adicional.precio)
+    adicional.observacion_precio = `Precio estándar: S/ ${adicional.adicional.precio} por unidad`
+  }
+
+  calcularSubtotalAdicional(adicional)
+}
+
 function calcularSubtotalAdicional(adicional) {
-  if (adicional.adicional?.precio && adicional.cantidad) {
-    adicional.total = parseFloat(adicional.adicional.precio) * parseInt(adicional.cantidad)
+  const precio = adicional.precio_aplicado || adicional.adicional?.precio || 0
+  if (precio && adicional.cantidad) {
+    adicional.total = parseFloat(precio) * parseInt(adicional.cantidad)
     // Copiar el valor de contable del adicional seleccionado
     if (adicional.adicional.contable !== undefined) {
       adicional.contable = adicional.adicional.contable
@@ -785,6 +857,8 @@ function addAdicional() {
     cantidad: 1,
     cuando: reserva.value.fecha || null,
     contable: true,
+    precio_aplicado: null,
+    observacion_precio: '',
     total: 0,
   })
 }
@@ -848,6 +922,8 @@ async function loadReserva() {
         cuando: adicional.cuando || null,
         // Copiar el valor de contable del adicional
         contable: adicionalRes?.data?.contable !== undefined ? adicionalRes.data.contable : true,
+        precio_aplicado: adicional.precio_aplicado || null,
+        observacion_precio: adicional.observacion_precio || '',
       }
     })
 
@@ -911,6 +987,8 @@ async function saveReserva() {
           adicional: parseInt(adicional.adicional.id),
           cuando: adicional.cuando || reserva.value.fecha,
           cantidad: parseInt(adicional.cantidad) || 1,
+          precio_aplicado: adicional.precio_aplicado ? parseFloat(adicional.precio_aplicado) : null,
+          observacion_precio: adicional.observacion_precio || '',
           total: parseFloat(adicional.total) || 0,
         })),
     }
