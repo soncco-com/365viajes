@@ -325,9 +325,13 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
         fecha_lte = request.query_params.get('fecha__lte')
         fecha_range = request.query_params.get('fecha__range')
         seleccionado = request.query_params.get('seleccionado')
+        idioma = request.query_params.get('idioma')
 
         if servicio_id:
             queryset = queryset.filter(servicio_id=servicio_id)
+
+        if idioma:
+            queryset = queryset.filter(idioma=idioma)
 
         if fecha_range:
             # formato: "fecha_desde,fecha_hasta"
@@ -400,6 +404,13 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
                 'subtotal': float(detalle.total) if detalle.total else 0.0,
                 'idioma': detalle.idioma,
                 'seleccionado': detalle.seleccionado,
+                'destino': detalle.destino,
+                'tipo_documento': detalle.pertenece_a.tipo_documento,
+                'tipo_documento_display': detalle.pertenece_a.get_tipo_documento_display(),
+                'observaciones_reserva': detalle.pertenece_a.observaciones or '',
+                'estado': detalle.pertenece_a.estado,
+                'estado_display': detalle.pertenece_a.get_estado_display(),
+                'girado_por': detalle.pertenece_a.girado_por.username if detalle.pertenece_a.girado_por else '',
             })
 
         return Response({

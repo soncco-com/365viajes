@@ -6,9 +6,6 @@
     <q-card flat bordered class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-4">
-            <date-range-picker v-model="filters.fechas" label="Rango de fechas" />
-          </div>
           <div class="col-12 col-md-3">
             <autocomplete-input
               v-model="filters.servicio_id"
@@ -17,6 +14,22 @@
               option-label="nombre"
               option-value="id"
               clearable
+            />
+          </div>
+
+          <div class="col-12 col-md-3">
+            <date-range-picker v-model="filters.fechas" label="Rango de fechas" />
+          </div>
+          <div class="col-12 col-md-2">
+            <q-select
+              v-model="filters.idioma"
+              label="Idioma"
+              :options="idiomaOptions"
+              emit-value
+              map-options
+              clearable
+              outlined
+              dense
             />
           </div>
           <div class="col-12 col-md-2">
@@ -73,9 +86,27 @@
           bordered
           no-data-label="No se encontraron servicios para los filtros seleccionados"
         >
-          <template v-slot:body-cell-fecha="props">
+          <template v-slot:body-cell-pasajero="props">
             <q-td :props="props">
-              {{ new Date(props.row.reserva_fecha).toLocaleDateString('es-ES') }}
+              <router-link
+                :to="`/reservas/${props.row.reserva_id}/editar`"
+                class="text-primary text-weight-medium"
+                style="text-decoration: none"
+              >
+                {{ props.row.pasajero }}
+              </router-link>
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-reserva_numero="props">
+            <q-td :props="props">
+              <router-link
+                :to="`/reservas/${props.row.reserva_id}/editar`"
+                class="text-primary text-weight-medium"
+                style="text-decoration: none"
+              >
+                {{ props.row.reserva_numero || 'S/N' }}
+              </router-link>
             </q-td>
           </template>
 
@@ -84,14 +115,6 @@
               <q-badge :color="props.row.seleccionado ? 'positive' : 'grey'">
                 {{ props.row.seleccionado ? 'Seleccionado' : 'Pendiente' }}
               </q-badge>
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-subtotal="props">
-            <q-td :props="props">
-              <span class="text-weight-bold">
-                S/ {{ parseFloat(props.row.subtotal || 0).toFixed(2) }}
-              </span>
             </q-td>
           </template>
         </q-table>
@@ -199,8 +222,15 @@ const savingOrden = ref(false)
 const filters = ref({
   fechas: { desde: null, hasta: null },
   servicio_id: null,
+  idioma: null,
   seleccionado: null,
 })
+
+const idiomaOptions = [
+  { label: 'Español', value: 'es' },
+  { label: 'Inglés', value: 'en' },
+  { label: 'Bilingüe', value: 'xx' },
+]
 
 const seleccionadoOptions = [
   { label: 'Seleccionados', value: true },
@@ -216,16 +246,25 @@ const ordenForm = ref({
 
 const columns = [
   {
-    name: 'fecha',
-    label: 'Fecha Servicio',
-    field: 'cuando',
+    name: 'numero_pax',
+    label: 'N° PAX',
+    field: 'numero_pax',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'lugar_nombre',
+    label: 'Hotel',
+    field: 'lugar_nombre',
     align: 'left',
     sortable: true,
-    format: (val) => {
-      if (!val) return ''
-      const [year, month, day] = val.split('-')
-      return `${day}/${month}/${year}`
-    },
+  },
+  {
+    name: 'pasajero',
+    label: 'Pasajero',
+    field: 'pasajero',
+    align: 'left',
+    sortable: true,
   },
   {
     name: 'servicio_nombre',
@@ -235,9 +274,9 @@ const columns = [
     sortable: true,
   },
   {
-    name: 'lugar_nombre',
-    label: 'Hotel',
-    field: 'lugar_nombre',
+    name: 'destino',
+    label: 'Destino',
+    field: 'destino',
     align: 'left',
   },
   {
@@ -248,26 +287,50 @@ const columns = [
     sortable: true,
   },
   {
-    name: 'pasajero',
-    label: 'Pasajero',
-    field: 'pasajero',
-    align: 'left',
+    name: 'reserva_numero',
+    label: 'ID Reserva',
+    field: 'reserva_numero',
+    align: 'center',
+    sortable: true,
   },
   {
-    name: 'numero_pax',
-    label: 'PAX',
-    field: 'numero_pax',
+    name: 'idioma',
+    label: 'Idioma',
+    field: 'idioma',
+    align: 'center',
+    format: (val) => {
+      const idiomas = { es: 'Español', en: 'Inglés', xx: 'Bilingüe' }
+      return idiomas[val] || val
+    },
+  },
+  {
+    name: 'tipo_documento',
+    label: 'Documento',
+    field: 'tipo_documento_display',
     align: 'center',
   },
   {
-    name: 'subtotal',
-    label: 'Subtotal',
-    field: 'subtotal',
-    align: 'right',
+    name: 'observaciones',
+    label: 'Observaciones',
+    field: 'observaciones_reserva',
+    align: 'left',
+  },
+  {
+    name: 'estado',
+    label: 'Estado',
+    field: 'estado_display',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'girado_por',
+    label: 'Girado por',
+    field: 'girado_por',
+    align: 'center',
   },
   {
     name: 'seleccionado',
-    label: 'Estado',
+    label: 'Selección',
     field: 'seleccionado',
     align: 'center',
     sortable: true,
@@ -318,6 +381,10 @@ const loadDetalles = async (props) => {
           : filters.value.servicio_id
     }
 
+    if (filters.value.idioma) {
+      params.idioma = filters.value.idioma
+    }
+
     if (filters.value.seleccionado !== null && filters.value.seleccionado !== undefined) {
       params.seleccionado = filters.value.seleccionado
     }
@@ -349,6 +416,7 @@ const clearFilters = () => {
   filters.value = {
     fechas: { desde: null, hasta: null },
     servicio_id: null,
+    idioma: null,
     seleccionado: null,
   }
   loadDetalles()
