@@ -293,22 +293,15 @@
   </p>
   <p style="margin: 3px 0 0 0; font-size: 8pt">{{ orden.observaciones }}</p>
 </div>
-{% endif %} {% if mostrar_agencia and agencias %}
-<div
-  style="
-    margin-top: 10px;
-    padding: 8px;
-    border: 1px solid #1976d2;
-    background-color: #e3f2fd;
-    border-radius: 3px;
-  "
->
-  <p style="margin: 0; font-weight: bold; font-size: 8pt; color: #1976d2">
-    Agencias:
-  </p>
-  <p style="margin: 3px 0 0 0; font-size: 8pt">
-    {% for agencia in agencias %} {{ agencia }}{% if not forloop.last %}, {%
-    endif %} {% endfor %}
-  </p>
+{% endif %}
+
+<!-- prettier-ignore-start -->
+{% if mostrar_agencia and agencias %}
+<div style="margin-top: 10px; padding: 8px; border: 1px solid #1976d2; background-color: #e3f2fd; border-radius: 3px;">
+  <p style="margin: 0; font-weight: bold; font-size: 8pt; color: #1976d2">Agencias:</p>
+  <p style="margin: 3px 0 0 0; font-size: 8pt">{% for agencia in agencias %}{{ agencia }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
 </div>
-{% endif %} {% endblock %}
+{% endif %}
+<!-- prettier-ignore-end -->
+
+{% endblock %}

@@ -1,0 +1,18 @@
+# Backend templates (Django)
+backend/**/templates/**/*.html
+backend/base/templates/**
+backend/reservas/templates/**
+
+# Python compiled files
+**/*.pyc
+**/__pycache__/**
+**/migrations/**
+
+# Build outputs
+dist/
+build/
+**/node_modules/**
+
+# Database
+*.sqlite3
+backend/dbdata/**
