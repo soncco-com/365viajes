@@ -9,9 +9,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Q, Max, F
 from django.utils import timezone
 from django.http import HttpResponse
+from django.contrib.contenttypes.models import ContentType
 from datetime import datetime
 
 from .models import Reserva, ReservaDetalle, ReservaAdicionalDetalle, OrdenServicio, OrdenServicioDetalle, Gasto
+from base.models import Auditoria
 from .serializers import (
     ReservaSerializer, ReservaDetalleSerializer, ReservaAdicionalDetalleSerializer,
     OrdenServicioSerializer, OrdenServicioDetalleSerializer, GastoSerializer
@@ -45,6 +47,28 @@ class ReservaViewSet(viewsets.ModelViewSet):
     search_fields = ['pasajero', 'numero', 'numero_factura', 'observaciones']
     ordering_fields = '__all__'
     ordering = ['-fecha']
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Evitar la eliminación de reservas que tengan detalles asociados a órdenes de servicio
+        """
+        reserva = self.get_object()
+
+        # Verificar si algún detalle de la reserva está en una orden de servicio
+        detalles_en_ordenes = OrdenServicioDetalle.objects.filter(
+            referencia__pertenece_a=reserva
+        ).exists()
+
+        if detalles_en_ordenes:
+            return Response(
+                {
+                    'error': 'No se puede eliminar la reserva porque tiene servicios asociados a órdenes de servicio. '
+                             'Elimine primero las órdenes de servicio relacionadas.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         """Al crear, aplicar lógica de estado Pagado"""
@@ -157,6 +181,69 @@ class ReservaViewSet(viewsets.ModelViewSet):
             'total_nocontable': total_nocontable,
             'total_neto': total - total_nocontable,
             'cantidad': queryset.count()
+        })
+
+    @action(detail=True, methods=['get'])
+    def historial(self, request, pk=None):
+        """
+        Obtiene el historial completo de cambios de una reserva
+        Incluye cambios en la reserva, sus detalles y adicionales
+        Solo accesible por administradores
+        """
+        reserva = self.get_object()
+
+        # Verificar que sea administrador
+        if not request.user.groups.filter(name='Administrador').exists():
+            return Response(
+                {'error': 'Solo los administradores pueden ver el historial'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Obtener ContentTypes
+        ct_reserva = ContentType.objects.get_for_model(Reserva)
+        ct_detalle = ContentType.objects.get_for_model(ReservaDetalle)
+        ct_adicional = ContentType.objects.get_for_model(
+            ReservaAdicionalDetalle)
+
+        # Obtener IDs de detalles y adicionales de esta reserva
+        detalles_ids = list(
+            reserva.reservadetalle_set.values_list('id', flat=True))
+        adicionales_ids = list(
+            reserva.reservaadicionaldetalle_set.values_list('id', flat=True))
+
+        # Obtener todas las auditorías relacionadas
+        auditorias = Auditoria.objects.filter(
+            # Cambios en la reserva
+            Q(content_type=ct_reserva, object_id=reserva.id) |
+            # Cambios en detalles
+            Q(content_type=ct_detalle, object_id__in=detalles_ids) |
+            # Cambios en adicionales
+            Q(content_type=ct_adicional, object_id__in=adicionales_ids)
+        ).select_related('usuario', 'content_type').order_by('-fecha')
+
+        # Serializar resultados
+        historial_data = []
+        for auditoria in auditorias:
+            historial_data.append({
+                'id': auditoria.id,
+                'fecha': auditoria.fecha,
+                'usuario': auditoria.usuario.username,
+                'usuario_nombre_completo': f"{auditoria.usuario.first_name} {auditoria.usuario.last_name}".strip() or auditoria.usuario.username,
+                'accion': auditoria.accion,
+                'accion_display': auditoria.get_accion_display(),
+                'modelo': str(auditoria.content_type.model).title(),
+                'modelo_id': auditoria.object_id,
+                'datos_anteriores': auditoria.datos_anteriores,
+                'datos_nuevos': auditoria.datos_nuevos,
+                'ip_address': auditoria.ip_address,
+            })
+
+        return Response({
+            'reserva_id': reserva.id,
+            'reserva_numero': reserva.numero,
+            'pasajero': reserva.pasajero,
+            'historial': historial_data,
+            'total_cambios': len(historial_data)
         })
 
     @action(detail=True, methods=['get'])
@@ -564,9 +651,17 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def pdf(self, request, pk=None):
-        """Genera PDF de la orden de servicio"""
+        """
+        Genera PDF de la orden de servicio
+        Parámetros query:
+        - mostrar_agencia: true/false (por defecto true) - Muestra información de agencias
+        """
         try:
             orden = self.get_object()
+
+            # Obtener parámetro para mostrar/ocultar agencia
+            mostrar_agencia = request.query_params.get(
+                'mostrar_agencia', 'true').lower() == 'true'
 
             # Obtener paradas del servicio
             paradas = orden.servicio.paradas.all().order_by('orden')
@@ -653,6 +748,18 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                     'otros_adicionales': ', '.join(otros_adicionales) if otros_adicionales else None,
                 })
 
+            # Recopilar agencias únicas de las reservas
+            agencias = []
+            if mostrar_agencia:
+                agencias_set = set()
+                for detalle_orden in orden.ordenserviciodetalle_set.select_related(
+                    'referencia__pertenece_a__cliente'
+                ).all():
+                    if detalle_orden.referencia.pertenece_a.cliente:
+                        agencias_set.add(
+                            detalle_orden.referencia.pertenece_a.cliente.nombre)
+                agencias = sorted(list(agencias_set))
+
             context = {
                 'orden': orden,
                 'paradas': paradas,
@@ -662,6 +769,8 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 'total_almuerzos': total_almuerzos,
                 'tiene_ingresos': tiene_ingresos,
                 'tiene_almuerzos': tiene_almuerzos,
+                'mostrar_agencia': mostrar_agencia,
+                'agencias': agencias,
             }
 
             pdf_gen = PDFGenerator(

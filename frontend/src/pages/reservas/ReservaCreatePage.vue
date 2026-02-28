@@ -1,19 +1,9 @@
 <template>
   <q-page class="q-pa-md">
-    <page-title
-      :title="isEditing ? 'Editar Reserva' : 'Nueva Reserva'"
-      :subtitle="isEditing ? `Reserva #${reserva.numero || 'S/N'}` : 'Crear nueva reserva'"
-    />
+    <page-title title="Nueva Reserva" subtitle="Crear nueva reserva" />
 
     <q-form @submit="saveReserva" class="q-mt-md">
-      <!-- Modo Creación: Stepper -->
-      <q-stepper
-        v-if="!isEditing"
-        v-model="step"
-        :grid="!$q.screen.lt.md"
-        color="primary"
-        animated
-      >
+      <q-stepper v-model="step" :grid="!$q.screen.lt.md" color="primary" animated>
         <q-step :name="1" title="Datos Principales" icon="info" :done="step > 1">
           <q-card flat bordered>
             <q-card-section>
@@ -571,119 +561,6 @@
           </div>
         </q-step>
       </q-stepper>
-
-      <!-- Modo Edición: Tabs con navegación libre -->
-      <div v-else>
-        <q-tabs
-          v-model="step"
-          dense
-          class="text-primary"
-          active-color="primary"
-          indicator-color="primary"
-          align="justify"
-        >
-          <q-tab :name="1" label="Datos Principales" icon="info" />
-          <q-tab :name="2" label="Servicios" icon="tour" />
-          <q-tab :name="3" label="Adicionales" icon="add_circle" />
-          <q-tab :name="4" label="Resumen" icon="check_circle" />
-        </q-tabs>
-
-        <q-separator />
-
-        <q-tab-panels v-model="step" animated>
-          <q-tab-panel :name="1">
-            <q-card flat bordered>
-              <q-card-section>
-                <div class="row q-col-gutter-md">
-                  <div class="col-12 col-md-4">
-                    <date-picker
-                      v-model="reserva.fecha"
-                      label="Fecha *"
-                      :rules="[(val) => !!val || 'La fecha es requerida']"
-                    />
-                  </div>
-
-                  <div class="col-12 col-md-4">
-                    <autocomplete-input
-                      ref="clienteAutocompleteRef"
-                      v-model="reserva.cliente"
-                      label="Agencia *"
-                      endpoint="base/clientes"
-                      option-label="nombre"
-                      :rules="[(val) => !!val || 'La agencia es requerida']"
-                      :allow-create="true"
-                      @create="openClienteDialog()"
-                      @create-with-text="openClienteDialog"
-                    />
-                  </div>
-
-                  <div class="col-12 col-md-4">
-                    <q-input
-                      v-model="reserva.pasajero"
-                      label="Pasajero *"
-                      outlined
-                      dense
-                      :rules="[(val) => !!val || 'El pasajero es requerido']"
-                      @update:model-value="(val) => (reserva.pasajero = val.toUpperCase())"
-                    />
-                  </div>
-
-                  <div class="col-12 col-md-3">
-                    <q-select
-                      v-model="reserva.estado"
-                      :options="estadoOptions"
-                      label="Estado *"
-                      outlined
-                      dense
-                      emit-value
-                      map-options
-                      :rules="[(val) => val !== null || 'El estado es requerido']"
-                    />
-                  </div>
-
-                  <div class="col-12 col-md-4">
-                    <q-select
-                      v-model="reserva.tipo_pago"
-                      :options="tipoPagoOptions"
-                      label="Tipo de Pago"
-                      outlined
-                      dense
-                      clearable
-                      emit-value
-                      map-options
-                    />
-                  </div>
-
-                  <div class="col-12 col-md-4">
-                    <q-select
-                      v-model="reserva.tipo_documento"
-                      :options="tipoDocumentoOptions"
-                      label="Tipo de Documento *"
-                      outlined
-                      dense
-                      emit-value
-                      map-options
-                      :rules="[
-                        (val) =>
-                          (val !== null && val !== undefined) || 'El tipo de documento es requerido',
-                      ]"
-                    />
-                  </div>
-
-                  <div class="col-12">
-                    <q-input
-                      v-model="reserva.observaciones"
-                      label="Observaciones"
-                      outlined
-                      dense
-                      type="textarea"
-                      rows="3"
-                    />
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
-          </q-tab-panel>
     </q-form>
 
     <q-dialog v-model="showClienteDialog" :maximized="$q.screen.xs">
@@ -713,8 +590,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
@@ -723,13 +600,11 @@ import DatePicker from 'src/components/DatePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 
 const $q = useQuasar()
-const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const { notifySuccess, notifyError } = useNotify()
 
 const step = ref(1)
-const isEditing = computed(() => !!route.params.id)
 const showClienteDialog = ref(false)
 const clienteAutocompleteRef = ref(null)
 
@@ -1020,73 +895,6 @@ function getIdiomaLabel(value) {
   return option ? option.label : value
 }
 
-async function loadReserva() {
-  try {
-    const response = await api.get(`reservas/reservas/${route.params.id}/`)
-
-    // Cargar objetos completos para servicio y lugar en cada detalle
-    const detallesPromises = (response.data.detalles || []).map(async (detalle) => {
-      const [servicioRes, lugarRes] = await Promise.all([
-        detalle.servicio ? api.get(`base/servicios/${detalle.servicio}/`) : Promise.resolve(null),
-        detalle.recoger_en ? api.get(`base/lugares/${detalle.recoger_en}/`) : Promise.resolve(null),
-      ])
-
-      return {
-        ...detalle,
-        servicio: servicioRes?.data || null,
-        destino: detalle.destino || null,
-        recoger_en: lugarRes?.data || null,
-        cuando: detalle.cuando || null,
-        idioma: idiomaOptions.find((opt) => opt.value === detalle.idioma) || {
-          value: 'es',
-          label: 'Español',
-        },
-        precio_aplicado: detalle.precio_aplicado || null,
-        observacion_precio: detalle.observacion_precio || '',
-        seleccionado: detalle.seleccionado || false, // Preservar el estado de selección
-      }
-    })
-
-    // Cargar objetos completos para adicional en cada adicional
-    const adicionalesPromises = (response.data.adicionales_detalle || []).map(async (adicional) => {
-      const adicionalRes = adicional.adicional
-        ? await api.get(`base/adicionales/${adicional.adicional}/`)
-        : null
-
-      return {
-        ...adicional,
-        adicional: adicionalRes?.data || null,
-        cuando: adicional.cuando || null,
-        // Copiar el valor de contable del adicional
-        contable: adicionalRes?.data?.contable !== undefined ? adicionalRes.data.contable : true,
-        precio_aplicado: adicional.precio_aplicado || null,
-        observacion_precio: adicional.observacion_precio || '',
-      }
-    })
-
-    // Cargar objeto completo del cliente
-    const clienteRes = response.data.cliente
-      ? await api.get(`base/clientes/${response.data.cliente}/`)
-      : null
-
-    const [detalles, adicionales] = await Promise.all([
-      Promise.all(detallesPromises),
-      Promise.all(adicionalesPromises),
-    ])
-
-    reserva.value = {
-      ...response.data,
-      cliente: clienteRes?.data || null,
-      detalles,
-      adicionales,
-    }
-    calcularTotal()
-  } catch (error) {
-    notifyError('Error al cargar la reserva')
-    console.error(error)
-  }
-}
-
 async function saveReserva() {
   try {
     const data = {
@@ -1130,14 +938,8 @@ async function saveReserva() {
         })),
     }
 
-    if (isEditing.value) {
-      await api.put(`reservas/reservas/${route.params.id}/`, data)
-      notifySuccess('Reserva actualizada correctamente')
-    } else {
-      await api.post('reservas/reservas/', data)
-      notifySuccess('Reserva creada correctamente')
-    }
-
+    await api.post('reservas/reservas/', data)
+    notifySuccess('Reserva creada correctamente')
     router.push('/reservas')
   } catch (error) {
     notifyError('Error al guardar la reserva')
@@ -1285,10 +1087,4 @@ function validarAdicionales() {
 function goBack() {
   router.push('/reservas')
 }
-
-onMounted(() => {
-  if (isEditing.value) {
-    loadReserva()
-  }
-})
 </script>

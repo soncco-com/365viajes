@@ -51,7 +51,7 @@ class Reserva(models.Model):
 
 
 class ReservaDetalle(models.Model):
-    pertenece_a = models.ForeignKey(Reserva, on_delete=models.PROTECT)
+    pertenece_a = models.ForeignKey(Reserva, on_delete=models.CASCADE)
     numero_pax = models.IntegerField()
     servicio = models.ForeignKey('base.Servicio', on_delete=models.PROTECT)
     recoger_en = models.ForeignKey('base.Lugar', on_delete=models.PROTECT)
@@ -78,7 +78,7 @@ class ReservaDetalle(models.Model):
 
 
 class ReservaAdicionalDetalle(models.Model):
-    pertenece_a = models.ForeignKey(Reserva, on_delete=models.PROTECT)
+    pertenece_a = models.ForeignKey(Reserva, on_delete=models.CASCADE)
     cantidad = models.IntegerField()
     adicional = models.ForeignKey('base.Adicional', on_delete=models.PROTECT)
     cuando = models.DateField()

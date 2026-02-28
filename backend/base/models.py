@@ -33,7 +33,8 @@ class Auditoria(models.Model):
     accion = models.CharField(max_length=1, choices=ACCIONES)
     fecha = models.DateTimeField(auto_now_add=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
+    # Cambiado a BigInt para soportar IDs temporales grandes
+    object_id = models.PositiveBigIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
     datos_anteriores = models.JSONField(null=True, blank=True)
     datos_nuevos = models.JSONField(null=True, blank=True)

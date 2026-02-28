@@ -101,6 +101,17 @@
             flat
             dense
             round
+            icon="history"
+            color="info"
+            @click="viewHistorial(props.row)"
+            v-if="isAdmin"
+          >
+            <q-tooltip>Ver historial de cambios</q-tooltip>
+          </q-btn>
+          <q-btn
+            flat
+            dense
+            round
             icon="picture_as_pdf"
             color="negative"
             @click="downloadPdf(props.row)"
@@ -131,6 +142,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from 'src/composables/useApi'
+import { useAuth } from 'src/composables/useAuth'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
@@ -140,6 +152,7 @@ import PdfViewer from 'src/components/PdfViewer.vue'
 
 const router = useRouter()
 const api = useApi()
+const { isAdmin } = useAuth()
 const { notifySuccess, notifyError, confirm } = useNotify()
 
 const reservas = ref([])
@@ -219,7 +232,7 @@ const columns = [
 ]
 
 const pagination = ref({
-  sortBy: 'fecha',
+  sortBy: 'id',
   descending: true,
   page: 1,
   rowsPerPage: 10,
@@ -289,6 +302,10 @@ const editReserva = (reserva) => {
   router.push(`/reservas/${reserva.id}/editar`)
 }
 
+const viewHistorial = (reserva) => {
+  router.push(`/reservas/${reserva.id}/historial`)
+}
+
 const downloadPdf = async (reserva) => {
   try {
     const response = await api.get(`reservas/reservas/${reserva.id}/pdf/`, {
@@ -308,7 +325,7 @@ const downloadPdf = async (reserva) => {
 const deleteReserva = async (reserva) => {
   const confirmed = await confirm(
     '¿Está seguro de eliminar esta reserva?',
-    'Esta acción no se puede deshacer',
+    'Esta acción no se puede deshacer. Se eliminarán también todos los servicios y adicionales asociados.',
   )
 
   if (!confirmed) return
@@ -318,7 +335,12 @@ const deleteReserva = async (reserva) => {
     notifySuccess('Reserva eliminada correctamente')
     loadReservas()
   } catch (error) {
-    notifyError('Error al eliminar la reserva')
+    // Manejar error específico de reservas con órdenes de servicio
+    if (error.response?.data?.error) {
+      notifyError(error.response.data.error)
+    } else {
+      notifyError('Error al eliminar la reserva')
+    }
     console.error(error)
   }
 }

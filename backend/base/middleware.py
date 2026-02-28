@@ -16,11 +16,9 @@ class AuditoriaMiddleware:
     def __call__(self, request):
         thread = current_thread()
 
-        # Guardar usuario e IP en el thread actual
-        if hasattr(request, 'user') and request.user.is_authenticated:
-            thread.auditoria_usuario = request.user
-        else:
-            thread.auditoria_usuario = None
+        # Guardar el request completo en el thread para que las señales
+        # puedan acceder al usuario autenticado por DRF después
+        thread.auditoria_request = request
 
         # Obtener IP del cliente
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -33,8 +31,8 @@ class AuditoriaMiddleware:
         response = self.get_response(request)
 
         # Limpiar el thread
-        if hasattr(thread, 'auditoria_usuario'):
-            delattr(thread, 'auditoria_usuario')
+        if hasattr(thread, 'auditoria_request'):
+            delattr(thread, 'auditoria_request')
         if hasattr(thread, 'auditoria_ip'):
             delattr(thread, 'auditoria_ip')
 

@@ -15,21 +15,76 @@ MODELOS_EXCLUIDOS = ['Auditoria', 'Session', 'ContentType', 'LogEntry']
 
 
 def obtener_datos_modelo(instancia):
-    """Serializa una instancia de modelo a JSON"""
+    """
+    Serializa una instancia de modelo a JSON con valores legibles
+    Incluye nombres de relaciones y valores display de choices
+    """
     try:
-        data = serialize('json', [instancia])
-        return json.loads(data)[0]['fields']
-    except:
-        return {}
+        # Obtener campos del modelo
+        campos = {}
+        for field in instancia._meta.fields:
+            field_name = field.name
+            field_value = getattr(instancia, field_name, None)
+
+            # Para campos con choices, guardar tanto el valor como el display
+            if hasattr(field, 'choices') and field.choices:
+                campos[field_name] = field_value
+                # Intentar obtener el display
+                display_method = f'get_{field_name}_display'
+                if hasattr(instancia, display_method):
+                    display_value = getattr(instancia, display_method)()
+                    campos[f'{field_name}_display'] = display_value
+            # Para DateTimeField/DateField
+            elif hasattr(field_value, 'isoformat'):
+                campos[field_name] = field_value.isoformat()
+            # Para ForeignKey - guardar ID y representación
+            elif hasattr(field_value, 'pk'):
+                campos[field_name] = field_value.pk
+                # Intentar obtener el nombre o representación legible
+                if hasattr(field_value, 'nombre'):
+                    campos[f'{field_name}_nombre'] = field_value.nombre
+                elif hasattr(field_value, 'username'):
+                    campos[f'{field_name}_username'] = field_value.username
+                elif hasattr(field_value, 'first_name') and field_value.first_name:
+                    campos[f'{field_name}_nombre'] = f"{field_value.first_name} {getattr(field_value, 'last_name', '')}".strip(
+                    )
+                else:
+                    campos[f'{field_name}_str'] = str(field_value)
+            # Para valores simples
+            elif isinstance(field_value, (str, int, float, bool, type(None))):
+                campos[field_name] = field_value
+            else:
+                campos[field_name] = str(field_value)
+
+        return campos
+    except Exception as e:
+        # Fallback: intentar con el serializador original
+        try:
+            data = serialize('json', [instancia])
+            return json.loads(data)[0]['fields']
+        except:
+            return {'error': f'No se pudo serializar: {str(e)}'}
 
 
 def obtener_usuario_actual():
     """
     Obtiene el usuario actual desde el middleware local thread
-    Requiere implementar middleware de auditoría
+    Compatible con autenticación JWT de DRF
     """
     from threading import current_thread
-    return getattr(current_thread(), 'auditoria_usuario', None)
+    thread = current_thread()
+
+    # Primero intentar obtener del thread directamente (para compatibilidad)
+    usuario = getattr(thread, 'auditoria_usuario', None)
+    if usuario and usuario.is_authenticated:
+        return usuario
+
+    # Si no está, obtener del request (para autenticación JWT de DRF)
+    request = getattr(thread, 'auditoria_request', None)
+    if request and hasattr(request, 'user') and request.user.is_authenticated:
+        return request.user
+
+    return None
 
 
 def obtener_ip_actual():

@@ -138,35 +138,6 @@
               </q-item>
 
               <q-separator spaced />
-
-              <!-- Adicionales -->
-              <q-item-label header class="text-weight-bold text-grey-8">
-                <q-icon name="add_box" size="18px" class="q-mr-xs" /> Adicionales
-              </q-item-label>
-              <q-item clickable v-close-popup to="/admin/adicionales" class="q-pl-md">
-                <q-item-section avatar>
-                  <q-icon name="add_box" size="20px" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Adicionales</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-close-popup
-                to="/admin/precios-especiales-adicionales"
-                class="q-pl-md"
-              >
-                <q-item-section avatar>
-                  <q-icon name="sell" size="20px" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Precios Especiales</q-item-label>
-                </q-item-section>
-              </q-item>
-
-              <q-separator spaced />
-
               <!-- Servicios -->
               <q-item-label header class="text-weight-bold text-grey-8">
                 <q-icon name="tour" size="18px" class="q-mr-xs" /> Servicios
@@ -193,6 +164,34 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Paradas de Servicios</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-separator spaced />
+
+              <!-- Adicionales -->
+              <q-item-label header class="text-weight-bold text-grey-8">
+                <q-icon name="add_box" size="18px" class="q-mr-xs" /> Adicionales
+              </q-item-label>
+              <q-item clickable v-close-popup to="/admin/adicionales" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="add_box" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Adicionales</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-close-popup
+                to="/admin/precios-especiales-adicionales"
+                class="q-pl-md"
+              >
+                <q-item-section avatar>
+                  <q-icon name="sell" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Precios Especiales</q-item-label>
                 </q-item-section>
               </q-item>
 
@@ -247,14 +246,6 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Configuraciones</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup to="/admin/auditoria" class="q-pl-md">
-                <q-item-section avatar>
-                  <q-icon name="history" size="20px" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Auditoría</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -458,40 +449,6 @@
                 <q-item-label>Horarios</q-item-label>
               </q-item-section>
             </q-item>
-
-            <!-- Adicionales -->
-            <q-item-label header class="q-pl-lg text-weight-bold text-grey-8">
-              Adicionales
-            </q-item-label>
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/adicionales"
-              @click="leftDrawerOpen = false"
-              class="q-pl-xl"
-            >
-              <q-item-section avatar>
-                <q-icon name="add_box" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Adicionales</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/precios-especiales-adicionales"
-              @click="leftDrawerOpen = false"
-              class="q-pl-xl"
-            >
-              <q-item-section avatar>
-                <q-icon name="sell" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Precios Especiales</q-item-label>
-              </q-item-section>
-            </q-item>
-
             <!-- Servicios -->
             <q-item-label header class="q-pl-lg text-weight-bold text-grey-8">
               Servicios
@@ -536,6 +493,39 @@
               </q-item-section>
               <q-item-section>
                 <q-item-label>Paradas de Servicios</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <!-- Adicionales -->
+            <q-item-label header class="q-pl-lg text-weight-bold text-grey-8">
+              Adicionales
+            </q-item-label>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/adicionales"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="add_box" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Adicionales</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/precios-especiales-adicionales"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="sell" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Precios Especiales</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -616,20 +606,6 @@
               </q-item-section>
               <q-item-section>
                 <q-item-label>Configuraciones</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/auditoria"
-              @click="leftDrawerOpen = false"
-              class="q-pl-xl"
-            >
-              <q-item-section avatar>
-                <q-icon name="history" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Auditoría</q-item-label>
               </q-item-section>
             </q-item>
           </q-expansion-item>

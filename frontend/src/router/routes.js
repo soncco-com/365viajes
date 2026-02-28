@@ -28,12 +28,18 @@ const routes = [
       {
         path: '/reservas/crear',
         name: 'reservas-create',
-        component: () => import('pages/reservas/ReservaFormPage.vue'),
+        component: () => import('pages/reservas/ReservaCreatePage.vue'),
       },
       {
         path: '/reservas/:id/editar',
         name: 'reservas-edit',
-        component: () => import('pages/reservas/ReservaFormPage.vue'),
+        component: () => import('pages/reservas/ReservaEditPage.vue'),
+      },
+      {
+        path: '/reservas/:id/historial',
+        name: 'reservas-historial',
+        component: () => import('pages/reservas/ReservaHistorialPage.vue'),
+        meta: { requiresAdmin: true },
       },
 
       // Módulo de Informes
@@ -145,14 +151,6 @@ const routes = [
         path: '/admin/horarios',
         name: 'admin-horarios',
         component: () => import('pages/admin/HorariosPage.vue'),
-        meta: { requiresAdmin: true },
-      },
-
-      // Módulo de Auditoría
-      {
-        path: '/admin/auditoria',
-        name: 'admin-auditoria',
-        component: () => import('pages/admin/AuditoriaPage.vue'),
         meta: { requiresAdmin: true },
       },
 

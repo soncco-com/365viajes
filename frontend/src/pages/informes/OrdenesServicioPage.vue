@@ -97,6 +97,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Dialog } from 'quasar'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
@@ -251,7 +252,50 @@ const viewOrden = (orden) => {
 
 const printOrden = async (orden) => {
   try {
+    // Preguntar si desea incluir información de agencia
+    const incluirAgencia = await new Promise((resolve) => {
+      Dialog.create({
+        title: 'Imprimir Orden de Servicio',
+        message: '¿Desea incluir información de agencias en el PDF?',
+        cancel: {
+          label: 'Cancelar',
+          flat: true,
+        },
+        ok: {
+          label: 'Imprimir',
+          color: 'primary',
+        },
+        options: {
+          type: 'radio',
+          model: 'con_agencia',
+          items: [
+            {
+              label: 'Imprimir con información de agencias',
+              value: 'con_agencia',
+              color: 'primary',
+            },
+            {
+              label: 'Imprimir sin información de agencias',
+              value: 'sin_agencia',
+              color: 'secondary',
+            },
+          ],
+        },
+      })
+        .onOk((selected) => {
+          resolve(selected === 'con_agencia')
+        })
+        .onCancel(() => {
+          resolve(null)
+        })
+    })
+
+    if (incluirAgencia === null) return // Usuario canceló
+
     const response = await api.get(`reservas/ordenes-servicio/${orden.id}/pdf/`, {
+      params: {
+        mostrar_agencia: incluirAgencia ? 'true' : 'false',
+      },
       responseType: 'blob',
     })
     const blob = new Blob([response.data], { type: 'application/pdf' })
