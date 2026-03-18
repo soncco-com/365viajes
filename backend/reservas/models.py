@@ -72,6 +72,10 @@ class ReservaDetalle(models.Model):
         max_length=255, null=True, blank=True,
         help_text='Observación sobre el precio aplicado (ej: "Precio especial para agencia X")'
     )
+    observaciones = models.TextField(
+        null=True, blank=True,
+        help_text='Observaciones del servicio para esta reserva'
+    )
 
     def __str__(self):
         return '%s pertenece a %s' % (self.servicio.nombre, self.pertenece_a.id)

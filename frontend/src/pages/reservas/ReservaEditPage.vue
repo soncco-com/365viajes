@@ -50,6 +50,7 @@
             @update-idioma="updateIdioma"
             @update-numero-pax="updateNumeroPax"
             @update-cuando="updateCuando"
+            @update-observaciones="updateObservaciones"
           />
         </q-tab-panel>
 
@@ -125,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useApi } from 'src/composables/useApi'
@@ -213,6 +214,116 @@ const totalNoContable = computed(() => {
 })
 
 // Funciones de servicios
+async function aplicarPrecioEspecialServicio(detalle) {
+  if (detalle.servicio?.id && reserva.value.cliente?.id) {
+    try {
+      const response = await api.get('base/servicio-precios-especiales/', {
+        params: {
+          servicio: detalle.servicio.id,
+          cliente: reserva.value.cliente.id,
+          activo: true,
+        },
+      })
+
+      const preciosEspeciales = response.data.results || []
+      const today = new Date().toISOString().split('T')[0]
+
+      const precioVigente = preciosEspeciales.find((precio) => {
+        const desde = precio.fecha_desde
+        const hasta = precio.fecha_hasta
+        if (!desde) return false
+        if (desde > today) return false
+        if (hasta && hasta < today) return false
+        return true
+      })
+
+      if (precioVigente) {
+        const precioNormal = parseFloat(detalle.servicio.precio)
+        const precioEspecial = parseFloat(precioVigente.precio)
+        const ahorro = precioNormal - precioEspecial
+        const porcentaje = ((ahorro / precioNormal) * 100).toFixed(1)
+        detalle.precio_aplicado = precioEspecial
+        detalle.observacion_precio = `Precio especial para ${reserva.value.cliente.nombre} (S/ ${precioNormal.toFixed(2)} → S/ ${precioEspecial.toFixed(2)}, ahorro: ${porcentaje}%)${precioVigente.observaciones ? ' - ' + precioVigente.observaciones : ''}`
+      } else {
+        detalle.precio_aplicado = parseFloat(detalle.servicio.precio)
+        detalle.observacion_precio = `Precio estándar: S/ ${detalle.servicio.precio} por PAX`
+      }
+    } catch (error) {
+      console.error('Error al consultar precios especiales:', error)
+      detalle.precio_aplicado = parseFloat(detalle.servicio.precio)
+      detalle.observacion_precio = `Precio estándar: S/ ${detalle.servicio.precio} por PAX`
+    }
+  } else if (detalle.servicio?.precio) {
+    detalle.precio_aplicado = parseFloat(detalle.servicio.precio)
+    detalle.observacion_precio = `Precio estándar: S/ ${detalle.servicio.precio} por PAX`
+  }
+}
+
+async function aplicarPrecioEspecialAdicional(adicional) {
+  if (adicional.adicional?.id && reserva.value.cliente?.id) {
+    try {
+      const response = await api.get('base/adicional-precios-especiales/', {
+        params: {
+          adicional: adicional.adicional.id,
+          cliente: reserva.value.cliente.id,
+          activo: true,
+        },
+      })
+
+      const preciosEspeciales = response.data.results || []
+      const today = new Date().toISOString().split('T')[0]
+
+      const precioVigente = preciosEspeciales.find((precio) => {
+        const desde = precio.fecha_desde
+        const hasta = precio.fecha_hasta
+        if (!desde) return false
+        if (desde > today) return false
+        if (hasta && hasta < today) return false
+        return true
+      })
+
+      if (precioVigente) {
+        const precioNormal = parseFloat(adicional.adicional.precio)
+        const precioEspecial = parseFloat(precioVigente.precio)
+        const ahorro = precioNormal - precioEspecial
+        const porcentaje = ((ahorro / precioNormal) * 100).toFixed(1)
+        adicional.precio_aplicado = precioEspecial
+        adicional.observacion_precio = `Precio especial para ${reserva.value.cliente.nombre} (S/ ${precioNormal.toFixed(2)} → S/ ${precioEspecial.toFixed(2)}, ahorro: ${porcentaje}%)${precioVigente.observaciones ? ' - ' + precioVigente.observaciones : ''}`
+      } else {
+        adicional.precio_aplicado = parseFloat(adicional.adicional.precio)
+        adicional.observacion_precio = `Precio estándar: S/ ${adicional.adicional.precio} por unidad`
+      }
+    } catch (error) {
+      console.error('Error al consultar precios especiales:', error)
+      adicional.precio_aplicado = parseFloat(adicional.adicional.precio)
+      adicional.observacion_precio = `Precio estándar: S/ ${adicional.adicional.precio} por unidad`
+    }
+  } else if (adicional.adicional?.precio) {
+    adicional.precio_aplicado = parseFloat(adicional.adicional.precio)
+    adicional.observacion_precio = `Precio estándar: S/ ${adicional.adicional.precio} por unidad`
+  }
+}
+
+// Re-calcular precios especiales cuando cambia el cliente
+watch(
+  () => reserva.value.cliente?.id,
+  async (newClienteId, oldClienteId) => {
+    if (newClienteId === oldClienteId) return
+    for (const detalle of reserva.value.detalles) {
+      if (detalle.servicio?.id) {
+        await aplicarPrecioEspecialServicio(detalle)
+        calcularSubtotalServicio(detalle)
+      }
+    }
+    for (const adicional of reserva.value.adicionales) {
+      if (adicional.adicional?.id) {
+        await aplicarPrecioEspecialAdicional(adicional)
+        calcularSubtotalAdicional(adicional)
+      }
+    }
+  },
+)
+
 function addServicio() {
   reserva.value.detalles.push({
     id: Date.now(),
@@ -224,6 +335,7 @@ function addServicio() {
     numero_pax: 1,
     precio_aplicado: null,
     observacion_precio: '',
+    observaciones: '',
     total: 0,
   })
 }
@@ -233,12 +345,10 @@ function removeServicio(index) {
   calcularTotal()
 }
 
-function updateServicio(index, value) {
+async function updateServicio(index, value) {
   reserva.value.detalles[index].servicio = value
-  if (value?.precio) {
-    reserva.value.detalles[index].precio_aplicado = value.precio
-    reserva.value.detalles[index].observacion_precio = value.observacion_precio || ''
-  }
+  if (!value?.id) return
+  await aplicarPrecioEspecialServicio(reserva.value.detalles[index])
   calcularSubtotalServicio(reserva.value.detalles[index])
 }
 
@@ -261,6 +371,10 @@ function updateNumeroPax(index, value) {
 
 function updateCuando(index, value) {
   reserva.value.detalles[index].cuando = value
+}
+
+function updateObservaciones(index, value) {
+  reserva.value.detalles[index].observaciones = value
 }
 
 function calcularSubtotalServicio(detalle) {
@@ -289,15 +403,13 @@ function removeAdicional(index) {
   calcularTotal()
 }
 
-function updateAdicional(index, value) {
+async function updateAdicional(index, value) {
   reserva.value.adicionales[index].adicional = value
-  if (value?.precio) {
-    reserva.value.adicionales[index].precio_aplicado = value.precio
-    reserva.value.adicionales[index].observacion_precio = value.observacion_precio || ''
-  }
   if (value?.contable !== undefined) {
     reserva.value.adicionales[index].contable = value.contable
   }
+  if (!value?.id) return
+  await aplicarPrecioEspecialAdicional(reserva.value.adicionales[index])
   calcularSubtotalAdicional(reserva.value.adicionales[index])
 }
 
@@ -459,6 +571,7 @@ async function saveReserva() {
           numero_pax: parseInt(detalle.numero_pax) || 1,
           precio_aplicado: detalle.precio_aplicado ? parseFloat(detalle.precio_aplicado) : null,
           observacion_precio: detalle.observacion_precio || '',
+          observaciones: detalle.observaciones || '',
           total: parseFloat(detalle.total) || 0,
         })),
       adicionales_data: reserva.value.adicionales

@@ -69,7 +69,7 @@
       {% for detalle in detalles %}
         <tr>
           <td class="text-center">{{ detalle.numero_pax }}</td>
-          <td>{{ detalle.servicio.nombre }}</td>
+          <td>{{ detalle.servicio.nombre }}{% if detalle.observaciones %}<br><span style="font-size: 7pt; color: #666;">{{ detalle.observaciones }}</span>{% endif %}</td>
           <td>{{ detalle.recoger_en.nombre }}</td>
           <td class="text-center">{{ detalle.cuando|date:'d/m/Y' }}</td>
           <td class="text-center">{{ detalle.get_idioma_display }}</td>

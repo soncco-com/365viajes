@@ -61,7 +61,7 @@ class PDFGenerator:
         base_css = """
         @page {
             size: A4 %(orientation)s;
-            margin: 1cm;
+            margin: 0.5cm 0.6cm;
         }
         body {
             font-family: 'Segoe UI', 'Helvetica Neue', 'Roboto', 'Ubuntu', 'Cantarell', sans-serif;

@@ -56,32 +56,49 @@
           hide-pagination
           no-data-label="No hay detalles"
         >
-          <template v-slot:body-cell-fecha="props">
-            <q-td :props="props">
-              {{ formatDate(props.row.reserva_detalle_info?.cuando) }}
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-actions="props">
-            <q-td :props="props">
-              <q-btn
-                flat
-                dense
-                round
-                icon="delete"
-                color="negative"
-                @click="deleteDetalle(props.row)"
-                :disable="(orden?.detalles?.length || 0) <= 1"
-              >
-                <q-tooltip>
-                  {{
-                    (orden?.detalles?.length || 0) <= 1
-                      ? 'Debe quedar al menos un detalle'
-                      : 'Eliminar detalle'
-                  }}
-                </q-tooltip>
-              </q-btn>
-            </q-td>
+          <template v-slot:body="props">
+            <q-tr :props="props" :data-id="props.row.id" class="sortable-row cursor-grab">
+              <q-td key="drag" :props="props" class="drag-handle">
+                <q-icon name="drag_indicator" size="sm" color="grey-6" />
+              </q-td>
+              <q-td key="reserva_id" :props="props">
+                {{ props.row.reserva_detalle_info?.reserva_id }}
+              </q-td>
+              <q-td key="fecha" :props="props">
+                {{ formatDate(props.row.reserva_detalle_info?.cuando) }}
+              </q-td>
+              <q-td key="pasajero" :props="props">
+                {{ props.row.reserva_detalle_info?.reserva_pasajero }}
+              </q-td>
+              <q-td key="lugar" :props="props">
+                {{ props.row.reserva_detalle_info?.lugar_nombre }}
+              </q-td>
+              <q-td key="numero_pax" :props="props" class="text-center">
+                {{ props.row.reserva_detalle_info?.numero_pax }}
+              </q-td>
+              <q-td key="idioma" :props="props" class="text-center">
+                {{ props.row.reserva_detalle_info?.idioma_display }}
+              </q-td>
+              <q-td key="actions" :props="props" class="text-center">
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="delete"
+                  color="negative"
+                  @click="deleteDetalle(props.row)"
+                  :disable="(orden?.detalles?.length || 0) <= 1"
+                >
+                  <q-tooltip>
+                    {{
+                      (orden?.detalles?.length || 0) <= 1
+                        ? 'Debe quedar al menos un detalle'
+                        : 'Eliminar detalle'
+                    }}
+                  </q-tooltip>
+                </q-btn>
+              </q-td>
+            </q-tr>
           </template>
         </q-table>
       </q-card-section>
@@ -90,11 +107,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
+import Sortable from 'sortablejs'
 
 const route = useRoute()
 const router = useRouter()
@@ -104,8 +122,16 @@ const { notifySuccess, notifyError, confirm } = useNotify()
 const ordenId = ref(route.params.id)
 const orden = ref(null)
 const loading = ref(false)
+let sortableInstance = null
 
 const columns = [
+  {
+    name: 'drag',
+    label: '',
+    field: 'drag',
+    align: 'center',
+    style: 'width: 40px',
+  },
   {
     name: 'reserva_id',
     label: 'ID Reserva',
@@ -113,21 +139,9 @@ const columns = [
     align: 'left',
   },
   {
-    name: 'reserva_numero',
-    label: 'Número Reserva',
-    field: (row) => row.reserva_detalle_info?.pertenece_a,
-    align: 'left',
-  },
-  {
     name: 'fecha',
     label: 'Fecha',
     field: 'fecha',
-    align: 'left',
-  },
-  {
-    name: 'servicio',
-    label: 'Servicio',
-    field: (row) => row.reserva_detalle_info?.servicio_nombre,
     align: 'left',
   },
   {
@@ -161,6 +175,44 @@ const columns = [
     align: 'center',
   },
 ]
+
+const initSortable = () => {
+  if (sortableInstance) {
+    sortableInstance.destroy()
+  }
+  nextTick(() => {
+    const tbody = document.querySelector('.q-table tbody')
+    if (!tbody) return
+    sortableInstance = Sortable.create(tbody, {
+      animation: 150,
+      handle: '.drag-handle',
+      ghostClass: 'sortable-ghost',
+      onEnd: async (evt) => {
+        if (evt.oldIndex === evt.newIndex) return
+        // Reordenar el array local
+        const detalles = [...orden.value.detalles]
+        const [moved] = detalles.splice(evt.oldIndex, 1)
+        detalles.splice(evt.newIndex, 0, moved)
+        orden.value.detalles = detalles
+        // Guardar en backend
+        try {
+          await api.post(`reservas/ordenes-servicio/${ordenId.value}/reordenar/`, {
+            detalle_ids: detalles.map((d) => d.id),
+          })
+        } catch (error) {
+          console.error(error)
+          notifyError('Error al guardar el orden')
+          await loadOrden()
+        }
+      },
+    })
+  })
+}
+
+watch(
+  () => orden.value?.detalles?.length,
+  () => initSortable(),
+)
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
@@ -216,3 +268,19 @@ onMounted(() => {
   loadOrden()
 })
 </script>
+
+<style scoped>
+.drag-handle {
+  cursor: grab;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.sortable-ghost {
+  opacity: 0.4;
+  background: #e3f2fd;
+}
+.cursor-grab {
+  cursor: default;
+}
+</style>

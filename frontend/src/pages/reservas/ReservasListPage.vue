@@ -36,7 +36,17 @@
               dense
             />
           </div>
-          <div class="col-12 col-md-4 flex items-end">
+          <div class="col-12 col-md-2">
+            <autocomplete-input
+              v-model="filters.girado_por"
+              label="Girado por"
+              endpoint="base/usuarios"
+              option-label="first_name"
+              option-value="id"
+              clearable
+            />
+          </div>
+          <div class="col-12 col-md-2 flex items-end">
             <q-btn
               color="primary"
               icon="search"
@@ -50,12 +60,37 @@
       </q-card-section>
     </q-card>
 
+    <!-- Totales -->
+    <q-card flat bordered class="q-mt-md" v-if="totales.cantidad">
+      <q-card-section horizontal class="q-gutter-md items-center q-pa-sm">
+        <div class="q-px-md">
+          <div class="text-caption text-grey-7">Registros</div>
+          <div class="text-subtitle1 text-weight-bold">{{ totales.cantidad }}</div>
+        </div>
+        <q-separator vertical />
+        <div class="q-px-md">
+          <div class="text-caption text-grey-7">Total</div>
+          <div class="text-subtitle1 text-weight-bold text-primary">
+            S/ {{ parseFloat(totales.total || 0).toFixed(2) }}
+          </div>
+        </div>
+        <q-separator vertical />
+        <div class="q-px-md">
+          <div class="text-caption text-grey-7">Total Neto</div>
+          <div class="text-subtitle1 text-weight-bold text-positive">
+            S/ {{ parseFloat(totales.total_neto || 0).toFixed(2) }}
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
     <!-- Tabla de reservas -->
     <data-table
       :rows="reservas"
       :columns="columns"
       :loading="loading"
       :pagination="pagination"
+      :show-totals="true"
       @request="onRequest"
       no-data-label="No se encontraron reservas"
       class="q-mt-md"
@@ -67,15 +102,6 @@
           label="Nueva Reserva"
           @click="$router.push('/reservas/crear')"
         />
-      </template>
-
-      <template v-slot:body-cell-numero="props">
-        <q-td :props="props">
-          <q-badge v-if="props.row.numero" color="primary">
-            {{ props.row.numero }}
-          </q-badge>
-          <span v-else class="text-grey">Sin número</span>
-        </q-td>
       </template>
 
       <template v-slot:body-cell-estado="props">
@@ -90,6 +116,14 @@
         <q-td :props="props">
           <span class="text-weight-bold">S/ {{ parseFloat(props.row.total || 0).toFixed(2) }}</span>
         </q-td>
+      </template>
+
+      <template v-slot:totals>
+        <q-tr class="text-weight-bold bg-grey-2">
+          <q-td colspan="5" class="text-right">Totales:</q-td>
+          <q-td class="text-right">S/ {{ parseFloat(totales.total || 0).toFixed(2) }}</q-td>
+          <q-td :colspan="columns.length - 6"></q-td>
+        </q-tr>
       </template>
 
       <template v-slot:body-cell-actions="props">
@@ -159,12 +193,14 @@ const reservas = ref([])
 const loading = ref(false)
 const showPdfDialog = ref(false)
 const pdfUrl = ref('')
+const totales = ref({ total: 0, total_nocontable: 0, total_neto: 0, cantidad: 0 })
 
 const filters = ref({
   fecha_desde: '',
   fecha_hasta: '',
   cliente_id: null,
   estado: null,
+  girado_por: null,
 })
 
 const estadoOptions = [
@@ -181,26 +217,27 @@ const columns = [
     sortable: true,
   },
   {
-    name: 'numero',
-    label: 'Número',
-    field: 'numero',
-    align: 'center',
+    name: 'cliente_nombre',
+    label: 'Agencia',
+    field: 'cliente_nombre',
+    align: 'left',
     sortable: true,
   },
   {
     name: 'fecha',
-    label: 'Fecha',
+    label: 'Fecha reserva',
     field: 'fecha',
     align: 'left',
     sortable: true,
     format: (val) => new Date(val).toLocaleDateString('es-ES'),
   },
   {
-    name: 'cliente_nombre',
-    label: 'Agencia',
-    field: 'cliente_nombre',
+    name: 'fecha_primer_servicio',
+    label: 'Fecha primer servicio',
+    field: 'fecha_primer_servicio',
     align: 'left',
-    sortable: true,
+    sortable: false,
+    format: (val) => (val ? new Date(val).toLocaleDateString('es-ES') : '-'),
   },
   {
     name: 'pasajero',
@@ -220,6 +257,34 @@ const columns = [
     name: 'estado',
     label: 'Estado',
     field: 'estado',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'girado_por_nombre',
+    label: 'Girado por',
+    field: 'girado_por_nombre',
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'tipo_pago_display',
+    label: 'Pago',
+    field: 'tipo_pago_display',
+    align: 'center',
+    sortable: false,
+  },
+  {
+    name: 'numero',
+    label: 'Num. Recibo',
+    field: 'numero',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'numero_factura',
+    label: 'Num. Factura',
+    field: 'numero_factura',
     align: 'center',
     sortable: true,
   },
@@ -247,7 +312,7 @@ const loadReservas = async (props) => {
 
     const params = {
       page,
-      page_size: rowsPerPage,
+      page_size: rowsPerPage === 0 ? 99999 : rowsPerPage,
       ordering: (descending ? '-' : '') + sortBy,
     }
 
@@ -268,6 +333,10 @@ const loadReservas = async (props) => {
       params.estado = filters.value.estado
     }
 
+    if (filters.value.girado_por) {
+      params.girado_por = filters.value.girado_por?.id || filters.value.girado_por
+    }
+
     const response = await api.get('reservas/reservas/', { params })
 
     reservas.value = response.data.results
@@ -276,11 +345,28 @@ const loadReservas = async (props) => {
     pagination.value.sortBy = sortBy
     pagination.value.descending = descending
     pagination.value.rowsNumber = response.data.count
+
+    // Cargar totales con los mismos filtros
+    loadTotales(params)
   } catch (error) {
     notifyError('Error al cargar las reservas')
     console.error(error)
   } finally {
     loading.value = false
+  }
+}
+
+const loadTotales = async (filterParams) => {
+  try {
+    // Solo enviar filtros, no paginación
+    const totalesFilters = { ...filterParams }
+    delete totalesFilters.page
+    delete totalesFilters.page_size
+    delete totalesFilters.ordering
+    const response = await api.get('reservas/reservas/totales/', { params: totalesFilters })
+    totales.value = response.data
+  } catch (error) {
+    console.error('Error al cargar totales', error)
   }
 }
 
@@ -294,6 +380,7 @@ const clearFilters = () => {
     fecha_hasta: '',
     cliente_id: null,
     estado: null,
+    girado_por: null,
   }
   loadReservas()
 }

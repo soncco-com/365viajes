@@ -267,17 +267,17 @@ const printOrden = async (orden) => {
         },
         options: {
           type: 'radio',
-          model: 'con_agencia',
+          model: 'sin_agencia',
           items: [
-            {
-              label: 'Imprimir con información de agencias',
-              value: 'con_agencia',
-              color: 'primary',
-            },
             {
               label: 'Imprimir sin información de agencias',
               value: 'sin_agencia',
               color: 'secondary',
+            },
+            {
+              label: 'Imprimir con información de agencias',
+              value: 'con_agencia',
+              color: 'primary',
             },
           ],
         },

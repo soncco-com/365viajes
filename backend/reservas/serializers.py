@@ -37,7 +37,8 @@ class ReservaDetalleWriteSerializer(serializers.ModelSerializer):
         model = ReservaDetalle
         fields = ['id', 'servicio', 'recoger_en', 'cuando',
                   'idioma', 'numero_pax', 'total', 'seleccionado',
-                  'destino', 'precio_aplicado', 'observacion_precio']
+                  'destino', 'precio_aplicado', 'observacion_precio',
+                  'observaciones']
 
 
 class ReservaAdicionalDetalleSerializer(serializers.ModelSerializer):

@@ -1,190 +1,74 @@
-{% extends 'pdf/base.html' %} {% block title %} Orden de Servicio #{{ orden.id
-}} {% endblock %} {% block content %}
-<div
-  style="
-    background-color: #f0f0f0;
-    padding: 8px;
-    margin-bottom: 10px;
-    border-radius: 3px;
-  "
->
-  <h2 style="margin: 0; font-size: 14pt; text-align: center">
-    ORDEN DE SERVICIO #{{ orden.id }}
-  </h2>
-</div>
+<!-- prettier-ignore-start -->
+{% extends 'pdf/base.html' %}
+{% block title %}{{ orden.servicio.nombre }} - {{ orden.fecha|date:'d/m/Y' }}{% endblock %}
+{% block content %}
 
-<!-- NOMBRE DEL SERVICIO - MUY VISIBLE -->
-<div
-  style="
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-    padding: 12px 16px;
-    margin-bottom: 12px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  "
->
-  <h1
-    style="
-      margin: 0;
-      font-size: 16pt;
-      text-align: center;
-      color: white;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    "
-  >
-    {{ orden.servicio.nombre }}
-  </h1>
-</div>
+<!-- Título: Nombre del servicio (sin fondo, ahorra tinta) -->
+<h1 style="margin: 0 0 6px 0; font-size: 12pt; text-align: center; color: #37474f; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #d84315; padding-bottom: 4px;">{{ orden.servicio.nombre }}</h1>
 
-<!-- Información del Servicio -->
-<div
-  style="
-    border: 2px solid #1976d2;
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 10px;
-    background-color: #f8f9fa;
-  "
->
-  <!-- Fila 1: Datos del Servicio -->
-  <table class="no-border" style="width: 100%; margin-bottom: 8px">
+<!-- Info del servicio -->
+<div style="border: 1px solid #ccc; border-radius: 3px; padding: 6px; margin-bottom: 6px;">
+  <table class="no-border" style="width: 100%; margin-bottom: 4px;">
     <tr>
       <td class="no-border" width="33%">
-        <div
-          style="
-            padding: 5px;
-            background-color: #e3f2fd;
-            border-radius: 3px;
-            text-align: center;
-          "
-        >
-          <div style="font-size: 7pt; color: #666">FECHA</div>
-          <div style="font-weight: bold; font-size: 10pt; color: #1976d2">
-            {{ orden.fecha|date:'d/m/Y' }}
-          </div>
+        <div style="padding: 3px; background-color: #f5f5f5; border-radius: 2px; text-align: center;">
+          <div style="font-size: 6pt; color: #888; text-transform: uppercase;">Fecha</div>
+          <div style="font-weight: bold; font-size: 10pt; color: #d84315;">{{ orden.fecha|date:'d/m/Y' }}</div>
         </div>
       </td>
       <td class="no-border" width="33%">
-        <div
-          style="
-            padding: 5px;
-            background-color: #e3f2fd;
-            border-radius: 3px;
-            text-align: center;
-          "
-        >
-          <div style="font-size: 7pt; color: #666">IDIOMA</div>
-          <div style="font-weight: bold; font-size: 10pt">
-            {{ orden.get_idioma_display }}
-          </div>
+        <div style="padding: 3px; background-color: #f5f5f5; border-radius: 2px; text-align: center;">
+          <div style="font-size: 6pt; color: #888; text-transform: uppercase;">Idioma</div>
+          <div style="font-weight: bold; font-size: 10pt;">{{ orden.get_idioma_display }}</div>
         </div>
       </td>
       <td class="no-border" width="33%">
-        <div
-          style="
-            padding: 5px;
-            background-color: #fff3e0;
-            border-radius: 3px;
-            text-align: center;
-          "
-        >
-          <div style="font-size: 7pt; color: #666">TOTAL PAX</div>
-          <div style="font-weight: bold; font-size: 13pt; color: #f57c00">
-            {{ total_pax }}
-          </div>
+        <div style="padding: 3px; background-color: #fff3e0; border-radius: 2px; text-align: center;">
+          <div style="font-size: 6pt; color: #888; text-transform: uppercase;">Total Pax</div>
+          <div style="font-weight: bold; font-size: 13pt; color: #d84315;">{{ total_pax }}</div>
         </div>
       </td>
     </tr>
   </table>
-
-  <!-- Fila 2: Personal Asignado -->
-  <div
-    style="
-      padding: 6px;
-      background-color: white;
-      border-radius: 3px;
-      border: 1px solid #ddd;
-    "
-  >
-    <table class="no-border" style="width: 100%; font-size: 8pt">
-      <tr>
-        <td class="no-border" width="33%" style="padding: 2px">
-          <strong style="color: #1976d2">👤 Guía:</strong> {{ orden.guia.nombre
-          }}<br />
-          <span style="color: #666; font-size: 7pt; margin-left: 15px"
-            >📞 {{ orden.guia.telefono }}</span
-          >
-        </td>
-        <td class="no-border" width="33%" style="padding: 2px">
-          <strong style="color: #1976d2">🚗 Conductor:</strong> {{
-          orden.chofer.nombre }}<br />
-          <span style="color: #666; font-size: 7pt; margin-left: 15px"
-            >📞 {{ orden.chofer.telefono }}</span
-          >
-        </td>
-        <td class="no-border" width="34%" style="padding: 2px">
-          {% if orden.responsable %}
-          <strong style="color: #1976d2">📋 Responsable:</strong> {{
-          orden.responsable.nombre }}<br />
-          <span style="color: #666; font-size: 7pt; margin-left: 15px"
-            >📞 {{ orden.responsable.telefono|default:'-' }}</span
-          >
-          {% else %}
-          <strong style="color: #1976d2">📋 Responsable:</strong>
-          <span style="color: #999">No asignado</span>
-          {% endif %}
-        </td>
-      </tr>
-    </table>
-  </div>
+  <table class="no-border" style="width: 100%; font-size: 8pt;">
+    <tr>
+      <td class="no-border" width="33%" style="padding: 2px;">
+        <strong style="color: #37474f;">Guía:</strong> {{ orden.guia.nombre }}<br>
+        <span style="color: #888; font-size: 7pt;">Tel: {{ orden.guia.telefono }}</span>
+      </td>
+      <td class="no-border" width="33%" style="padding: 2px;">
+        <strong style="color: #37474f;">Conductor:</strong> {{ orden.chofer.nombre }}<br>
+        <span style="color: #888; font-size: 7pt;">Tel: {{ orden.chofer.telefono }}</span>
+      </td>
+      <td class="no-border" width="34%" style="padding: 2px;">
+        {% if orden.responsable %}<strong style="color: #37474f;">Responsable:</strong> {{ orden.responsable.nombre }}<br>
+        <span style="color: #888; font-size: 7pt;">Tel: {{ orden.responsable.telefono|default:'-' }}</span>
+        {% else %}<strong style="color: #37474f;">Responsable:</strong> <span style="color: #aaa;">No asignado</span>{% endif %}
+      </td>
+    </tr>
+  </table>
 </div>
 
 {% if paradas %}
-<div
-  style="
-    background-color: #e8f4f8;
-    padding: 6px 8px;
-    margin-bottom: 8px;
-    border-left: 3px solid #0288d1;
-    border-radius: 2px;
-  "
->
-  <strong style="font-size: 9pt">Paradas del Servicio:</strong>
-  <span style="font-size: 8pt; color: #555">
-    {% for parada in paradas %} {{ parada.nombre }}{% if not forloop.last %} →
-    {% endif %} {% endfor %}
-  </span>
+<div style="padding: 3px 6px; margin-bottom: 5px; border-left: 3px solid #d84315; font-size: 8pt;">
+  <strong style="color: #37474f;">Paradas:</strong>
+  <span style="color: #555;">{% for parada in paradas %}{{ parada.nombre }}{% if not forloop.last %} → {% endif %}{% endfor %}</span>
 </div>
 {% endif %}
 
 <!-- Tabla de Detalles -->
-<h3
-  style="
-    margin: 8px 0 5px 0;
-    font-size: 10pt;
-    background-color: #e8e8e8;
-    padding: 4px 8px;
-    border-radius: 2px;
-  "
->
-  Detalles de Reservas ({{ detalles|length }} servicio{{
-  detalles|length|pluralize }})
-</h3>
-<table style="font-size: 7pt">
+<div style="margin: 4px 0 3px 0; font-size: 9pt; color: #37474f; font-weight: bold; border-bottom: 1px solid #37474f; padding-bottom: 2px;">Pasajeros ({{ detalles|length }})</div>
+<table style="font-size: 7pt;">
   <thead>
-    <tr>
-      <th width="6%">PAX</th>
-      <th width="20%">Hotel</th>
-      <th width="22%">Pasajero</th>
-      <th width="13%">Destino</th>
-      {% if tiene_ingresos %}
-      <th width="7%">Ingresos</th>
-      {% endif %} {% if tiene_almuerzos %}
-      <th width="7%">Almuerzo</th>
-      {% endif %}
-      <th width="15%">Adicionales</th>
+    <tr style="background-color: #37474f; color: white;">
+      <th width="5%">PAX</th>
+      <th width="18%">Hotel</th>
+      <th width="20%">Pasajero</th>
+      {% if mostrar_agencia %}<th width="14%">Agencia</th>{% endif %}
+      {% if tiene_destinos %}<th width="12%">Destino</th>{% endif %}
+      {% if tiene_ingresos %}<th width="7%">Ingresos</th>{% endif %}
+      {% if tiene_almuerzos %}<th width="7%">Almuerzo</th>{% endif %}
+      <th width="12%">Adicionales</th>
       <th width="10%">Obs.</th>
     </tr>
   </thead>
@@ -194,114 +78,46 @@
       <td class="text-center">{{ detalle.numero_pax }}</td>
       <td>{{ detalle.lugar_nombre }}</td>
       <td>{{ detalle.pasajero }}</td>
-      <td>{{ detalle.destino|default:'-' }}</td>
+      {% if mostrar_agencia %}<td style="font-size: 6pt;">{{ detalle.agencia|default:'-' }}</td>{% endif %}
+      {% if tiene_destinos %}<td>{{ detalle.destino|default:'-' }}</td>{% endif %}
       {% if tiene_ingresos %}
-      <td style="font-size: 6pt">
-        {% if detalle.ingresos %}
-        <span style="color: #2e7d32">{{ detalle.ingresos }}</span>
-        {% else %} - {% endif %}
-      </td>
-      {% endif %} {% if tiene_almuerzos %}
-      <td style="font-size: 6pt">
-        {% if detalle.almuerzos %}
-        <span style="color: #f57c00">{{ detalle.almuerzos }}</span>
-        {% else %} - {% endif %}
-      </td>
+      <td style="font-size: 6pt;">{% if detalle.ingresos %}<span style="color: #2e7d32;">{{ detalle.ingresos }}</span>{% else %}-{% endif %}</td>
       {% endif %}
-      <td style="font-size: 6pt">
-        {% if detalle.otros_adicionales %} {{ detalle.otros_adicionales }} {%
-        else %} - {% endif %}
-      </td>
-      <td style="font-size: 6pt">{{ detalle.observaciones|default:'-' }}</td>
+      {% if tiene_almuerzos %}
+      <td style="font-size: 6pt;">{% if detalle.almuerzos %}<span style="color: #e65100;">{{ detalle.almuerzos }}</span>{% else %}-{% endif %}</td>
+      {% endif %}
+      <td style="font-size: 6pt;">{% if detalle.otros_adicionales %}{{ detalle.otros_adicionales }}{% else %}-{% endif %}</td>
+      <td style="font-size: 6pt;">{{ detalle.observaciones|default:'-' }}</td>
     </tr>
     {% endfor %}
-    <!-- Filas vacías para anotaciones adicionales -->
+    {% for i in "123" %}
     <tr>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      {% if tiene_ingresos %}
-      <td>&nbsp;</td>
-      {% endif %} {% if tiene_almuerzos %}
-      <td>&nbsp;</td>
-      {% endif %}
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
+      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+      {% if mostrar_agencia %}<td>&nbsp;</td>{% endif %}
+      {% if tiene_destinos %}<td>&nbsp;</td>{% endif %}
+      {% if tiene_ingresos %}<td>&nbsp;</td>{% endif %}
+      {% if tiene_almuerzos %}<td>&nbsp;</td>{% endif %}
+      <td>&nbsp;</td><td>&nbsp;</td>
     </tr>
-    <tr>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      {% if tiene_ingresos %}
-      <td>&nbsp;</td>
-      {% endif %} {% if tiene_almuerzos %}
-      <td>&nbsp;</td>
-      {% endif %}
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-    </tr>
-    <tr>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-      {% if tiene_ingresos %}
-      <td>&nbsp;</td>
-      {% endif %} {% if tiene_almuerzos %}
-      <td>&nbsp;</td>
-      {% endif %}
-      <td>&nbsp;</td>
-      <td>&nbsp;</td>
-    </tr>
-    <tr class="totales">
-      <td class="text-center">
-        <strong>{{ total_pax }}</strong>
-      </td>
-      <td colspan="2">
-        <strong>TOTAL</strong>
-      </td>
-      <td></td>
-      {% if tiene_ingresos %}
-      <td class="text-center">
-        <strong>{{ total_ingresos }}</strong>
-      </td>
-      {% endif %} {% if tiene_almuerzos %}
-      <td class="text-center">
-        <strong>{{ total_almuerzos }}</strong>
-      </td>
-      {% endif %}
-      <td></td>
-      <td></td>
+    {% endfor %}
+    <tr class="totales" style="background-color: #f5f5f5;">
+      <td class="text-center"><strong style="color: #d84315;">{{ total_pax }}</strong></td>
+      <td colspan="2"><strong>TOTAL</strong></td>
+      {% if mostrar_agencia %}<td></td>{% endif %}
+      {% if tiene_destinos %}<td></td>{% endif %}
+      {% if tiene_ingresos %}<td class="text-center"><strong>{{ total_ingresos }}</strong></td>{% endif %}
+      {% if tiene_almuerzos %}<td class="text-center"><strong>{{ total_almuerzos }}</strong></td>{% endif %}
+      <td></td><td></td>
     </tr>
   </tbody>
 </table>
 
 {% if orden.observaciones %}
-<div
-  style="
-    margin-top: 10px;
-    padding: 8px;
-    border: 1px solid #ddd;
-    background-color: #fff9c4;
-    border-radius: 3px;
-  "
->
-  <p style="margin: 0; font-weight: bold; font-size: 8pt">
-    Observaciones Generales:
-  </p>
-  <p style="margin: 3px 0 0 0; font-size: 8pt">{{ orden.observaciones }}</p>
+<div style="margin-top: 6px; padding: 5px 6px; border-left: 3px solid #37474f; background-color: #f5f5f5; border-radius: 2px;">
+  <p style="margin: 0; font-weight: bold; font-size: 8pt; color: #37474f;">Observaciones:</p>
+  <p style="margin: 2px 0 0 0; font-size: 8pt;">{{ orden.observaciones }}</p>
 </div>
 {% endif %}
-
-<!-- prettier-ignore-start -->
-{% if mostrar_agencia and agencias %}
-<div style="margin-top: 10px; padding: 8px; border: 1px solid #1976d2; background-color: #e3f2fd; border-radius: 3px;">
-  <p style="margin: 0; font-weight: bold; font-size: 8pt; color: #1976d2">Agencias:</p>
-  <p style="margin: 3px 0 0 0; font-size: 8pt">{% for agencia in agencias %}{{ agencia }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
-</div>
-{% endif %}
-<!-- prettier-ignore-end -->
 
 {% endblock %}
+<!-- prettier-ignore-end -->

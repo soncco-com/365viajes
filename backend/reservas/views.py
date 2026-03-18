@@ -40,7 +40,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
         'estado': ['exact'],
         'tipo_documento': ['exact'],
         'tipo_pago': ['exact'],
-        'fecha': ['exact', 'gte', 'lte'],
+        'fecha': ['exact', 'gte', 'lte', 'range'],
         'girado_por': ['exact'],
         'girado_cuando': ['exact', 'gte', 'lte', 'date'],
     }
@@ -135,10 +135,14 @@ class ReservaViewSet(viewsets.ModelViewSet):
         # Crear lista con campos necesarios para el template
         reservas = []
         for r in reservas_qs:
+            # Calcular fecha del primer servicio
+            primer_servicio = r.reservadetalle_set.order_by(
+                'cuando').values_list('cuando', flat=True).first()
+
             reservas.append({
                 'id': r.id,
                 'cliente_nombre': r.cliente.nombre if r.cliente else '',
-                'fecha_primer_servicio': r.fecha_primer_servicio,
+                'fecha_primer_servicio': primer_servicio,
                 'girado_cuando': r.girado_cuando,
                 'pasajero': r.pasajero,
                 'tipo_documento_display': r.get_tipo_documento_display(),
@@ -161,7 +165,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
         }
 
         pdf_gen = PDFGenerator('pdf/rendicion_ventas.html',
-                               context, orientation='landscape')
+                               context, orientation='portrait')
         pdf_bytes = pdf_gen.generate()
 
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
@@ -391,7 +395,7 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
         }
 
         pdf_gen = PDFGenerator('pdf/servicio_agencias.html',
-                               context, orientation='landscape')
+                               context, orientation='portrait')
         pdf_bytes = pdf_gen.generate()
 
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
@@ -575,7 +579,7 @@ class ReservaAdicionalDetalleViewSet(viewsets.ReadOnlyModelViewSet):
         }
 
         pdf_gen = PDFGenerator(
-            'pdf/adicionales_reporte.html', context, orientation='landscape')
+            'pdf/adicionales_reporte.html', context, orientation='portrait')
         pdf_bytes = pdf_gen.generate()
 
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
@@ -649,6 +653,24 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    @action(detail=True, methods=['post'])
+    def reordenar(self, request, pk=None):
+        """Reordena los detalles de la orden según la lista de IDs recibida"""
+        orden = self.get_object()
+        detalle_ids = request.data.get('detalle_ids', [])
+        if not detalle_ids:
+            return Response(
+                {'error': 'detalle_ids requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        for idx, detalle_id in enumerate(detalle_ids):
+            OrdenServicioDetalle.objects.filter(
+                id=detalle_id, pertenece_a=orden
+            ).update(sort=idx)
+
+        return Response({'message': 'Orden actualizado'})
+
     @action(detail=True, methods=['get'])
     def pdf(self, request, pk=None):
         """
@@ -690,10 +712,11 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
             total_almuerzos = 0
             tiene_ingresos = False
             tiene_almuerzos = False
+            tiene_destinos = False
             adicionales_usados = set()
 
             for detalle_orden in orden.ordenserviciodetalle_set.select_related(
-                'referencia__pertenece_a', 'referencia__recoger_en'
+                'referencia__pertenece_a__cliente', 'referencia__recoger_en'
             ).all():
                 reserva_detalle = detalle_orden.referencia
                 reserva = reserva_detalle.pertenece_a
@@ -737,16 +760,25 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 total_ingresos += ingresos_count
                 total_almuerzos += almuerzos_count
 
+                # Preferir observaciones del detalle, si no usar las de la reserva
+                obs_detalle = reserva_detalle.observaciones or ''
+                obs_reserva = reserva.observaciones or ''
+                observaciones_final = obs_detalle if obs_detalle else obs_reserva
+
                 detalles_procesados.append({
                     'numero_pax': reserva_detalle.numero_pax,
                     'lugar_nombre': reserva_detalle.recoger_en.nombre,
                     'pasajero': reserva.pasajero,
+                    'agencia': reserva.cliente.nombre if reserva.cliente else '',
                     'destino': reserva_detalle.destino,
                     'ingresos': ', '.join(ingresos_list) if ingresos_list else None,
                     'almuerzos': ', '.join(almuerzos_list) if almuerzos_list else None,
-                    'observaciones': reserva.observaciones if reserva.observaciones else '',
+                    'observaciones': observaciones_final,
                     'otros_adicionales': ', '.join(otros_adicionales) if otros_adicionales else None,
                 })
+
+                if reserva_detalle.destino:
+                    tiene_destinos = True
 
             # Recopilar agencias únicas de las reservas
             agencias = []
@@ -769,6 +801,7 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 'total_almuerzos': total_almuerzos,
                 'tiene_ingresos': tiene_ingresos,
                 'tiene_almuerzos': tiene_almuerzos,
+                'tiene_destinos': tiene_destinos,
                 'mostrar_agencia': mostrar_agencia,
                 'agencias': agencias,
             }

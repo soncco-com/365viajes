@@ -230,6 +230,20 @@
                         </template>
                       </date-picker>
 
+                      <q-input
+                        v-model="detalle.observaciones"
+                        label="Observaciones"
+                        dense
+                        outlined
+                        type="textarea"
+                        autogrow
+                        class="q-mb-md"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="notes" />
+                        </template>
+                      </q-input>
+
                       <div
                         v-if="detalle.observacion_precio"
                         class="text-caption text-grey-7 q-mb-md"
@@ -691,6 +705,20 @@ watch([subtotalServicios, subtotalAdicionales, totalNoContable], () => {
   calcularTotal()
 })
 
+// Re-calcular precios especiales cuando cambia el cliente
+watch(
+  () => reserva.value.cliente?.id,
+  async (newClienteId, oldClienteId) => {
+    if (newClienteId === oldClienteId) return
+    for (const detalle of reserva.value.detalles) {
+      if (detalle.servicio?.id) await onServicioChange(detalle)
+    }
+    for (const adicional of reserva.value.adicionales) {
+      if (adicional.adicional?.id) await onAdicionalChange(adicional)
+    }
+  },
+)
+
 function calcularTotal() {
   reserva.value.total = subtotalServicios.value + subtotalAdicionales.value - totalNoContable.value
 }
@@ -852,6 +880,7 @@ function addServicio() {
     cuando: reserva.value.fecha || null,
     precio_aplicado: null,
     observacion_precio: '',
+    observaciones: '',
     total: 0,
     seleccionado: false,
   })
@@ -920,6 +949,7 @@ async function saveReserva() {
           numero_pax: parseInt(detalle.numero_pax) || 1,
           precio_aplicado: detalle.precio_aplicado ? parseFloat(detalle.precio_aplicado) : null,
           observacion_precio: detalle.observacion_precio || '',
+          observaciones: detalle.observaciones || '',
           total: parseFloat(detalle.total) || 0,
           seleccionado: Boolean(detalle.seleccionado), // Preservar valor exacto, no forzar a false
         })),

@@ -124,6 +124,21 @@
                 </template>
               </date-picker>
 
+              <q-input
+                :model-value="detalle.observaciones"
+                @update:model-value="$emit('update-observaciones', index, $event)"
+                label="Observaciones"
+                dense
+                outlined
+                type="textarea"
+                autogrow
+                class="q-mb-md"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="notes" />
+                </template>
+              </q-input>
+
               <div v-if="detalle.observacion_precio" class="text-caption text-grey-7 q-mb-md">
                 <q-icon name="info" size="xs" />
                 {{ detalle.observacion_precio }}
@@ -188,5 +203,6 @@ defineEmits([
   'update-idioma',
   'update-numero-pax',
   'update-cuando',
+  'update-observaciones',
 ])
 </script>
