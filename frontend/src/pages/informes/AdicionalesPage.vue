@@ -181,8 +181,7 @@ const loadReporte = async (props) => {
       page,
       page_size: rowsPerPage,
       ordering: (descending ? '-' : '') + sortBy,
-      cuando__gte: filters.value.fecha.desde,
-      cuando__lte: filters.value.fecha.hasta,
+      cuando__range: filters.value.fecha.range,
       adicional: filters.value.adicional?.id || filters.value.adicional,
     }
 
@@ -214,8 +213,7 @@ const imprimirPDF = async () => {
   loadingPDF.value = true
   try {
     const params = {
-      cuando__gte: filters.value.fecha.desde,
-      cuando__lte: filters.value.fecha.hasta,
+      cuando__range: filters.value.fecha.range,
       adicional: filters.value.adicional?.id || filters.value.adicional,
     }
 

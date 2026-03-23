@@ -7,11 +7,7 @@
       <q-card-section>
         <div class="row q-col-gutter-md">
           <div class="col-12 col-md-3">
-            <date-range-picker
-              v-model:desde="filters.fecha_desde"
-              v-model:hasta="filters.fecha_hasta"
-              label="Rango de fechas"
-            />
+            <date-range-picker v-model="filters.fecha" label="Rango de fechas" />
           </div>
           <div class="col-12 col-md-3">
             <autocomplete-input
@@ -31,12 +27,23 @@
               emit-value
               map-options
               clearable
-              fill-input
               outlined
               dense
             />
           </div>
           <div class="col-12 col-md-2">
+            <q-select
+              v-model="filters.tipo_pago"
+              label="Tipo de Pago"
+              :options="tipoPagoOptions"
+              emit-value
+              map-options
+              clearable
+              outlined
+              dense
+            />
+          </div>
+          <div class="col-12 col-md-3">
             <autocomplete-input
               v-model="filters.girado_por"
               label="Girado por"
@@ -46,15 +53,18 @@
               clearable
             />
           </div>
-          <div class="col-12 col-md-2 flex items-end">
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="loadReservas"
-              class="q-mr-sm"
+          <div class="col-12 col-md-2">
+            <q-input
+              v-model="filters.numero_rango"
+              label="Num. Recibo"
+              placeholder="Ej: 1-5"
+              outlined
+              dense
+              clearable
             />
-            <q-btn color="secondary" icon="clear" label="Limpiar" @click="clearFilters" flat />
+          </div>
+          <div class="col-12 col-md-2 flex items-end">
+            <q-btn color="grey" icon="clear" label="Limpiar" @click="clearFilters" flat />
           </div>
         </div>
       </q-card-section>
@@ -173,7 +183,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from 'src/composables/useApi'
 import { useAuth } from 'src/composables/useAuth'
@@ -196,16 +206,23 @@ const pdfUrl = ref('')
 const totales = ref({ total: 0, total_nocontable: 0, total_neto: 0, cantidad: 0 })
 
 const filters = ref({
-  fecha_desde: '',
-  fecha_hasta: '',
+  fecha: { desde: '', hasta: '', range: null },
   cliente_id: null,
   estado: null,
+  tipo_pago: null,
   girado_por: null,
+  numero_rango: '',
 })
 
 const estadoOptions = [
   { label: 'Pagado', value: '0' },
   { label: 'Deuda', value: '1' },
+]
+
+const tipoPagoOptions = [
+  { label: 'Efectivo', value: '0' },
+  { label: 'Depósito', value: '1' },
+  { label: 'Otro', value: '2' },
 ]
 
 const columns = [
@@ -282,13 +299,6 @@ const columns = [
     sortable: true,
   },
   {
-    name: 'numero_factura',
-    label: 'Num. Factura',
-    field: 'numero_factura',
-    align: 'center',
-    sortable: true,
-  },
-  {
     name: 'actions',
     label: 'Acciones',
     field: 'actions',
@@ -317,12 +327,12 @@ const loadReservas = async (props) => {
     }
 
     // Añadir filtros
-    if (filters.value.fecha_desde && filters.value.fecha_hasta) {
-      params.fecha__range = `${filters.value.fecha_desde},${filters.value.fecha_hasta}`
-    } else if (filters.value.fecha_desde) {
-      params.fecha__gte = filters.value.fecha_desde
-    } else if (filters.value.fecha_hasta) {
-      params.fecha__lte = filters.value.fecha_hasta
+    if (filters.value.fecha.range) {
+      params.fecha__range = filters.value.fecha.range
+    } else if (filters.value.fecha.desde) {
+      params.fecha__gte = filters.value.fecha.desde
+    } else if (filters.value.fecha.hasta) {
+      params.fecha__lte = filters.value.fecha.hasta
     }
 
     if (filters.value.cliente_id) {
@@ -333,8 +343,16 @@ const loadReservas = async (props) => {
       params.estado = filters.value.estado
     }
 
+    if (filters.value.tipo_pago !== null && filters.value.tipo_pago !== undefined) {
+      params.tipo_pago = filters.value.tipo_pago
+    }
+
     if (filters.value.girado_por) {
       params.girado_por = filters.value.girado_por?.id || filters.value.girado_por
+    }
+
+    if (filters.value.numero_rango) {
+      params.numero_rango = filters.value.numero_rango
     }
 
     const response = await api.get('reservas/reservas/', { params })
@@ -376,11 +394,12 @@ const onRequest = (props) => {
 
 const clearFilters = () => {
   filters.value = {
-    fecha_desde: '',
-    fecha_hasta: '',
+    fecha: { desde: '', hasta: '', range: null },
     cliente_id: null,
     estado: null,
+    tipo_pago: null,
     girado_por: null,
+    numero_rango: '',
   }
   loadReservas()
 }
@@ -435,6 +454,18 @@ const deleteReserva = async (reserva) => {
 onMounted(() => {
   loadReservas()
 })
+
+let debounceTimer = null
+watch(
+  filters,
+  () => {
+    clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      loadReservas()
+    }, 400)
+  },
+  { deep: true },
+)
 </script>
 
 <style scoped>

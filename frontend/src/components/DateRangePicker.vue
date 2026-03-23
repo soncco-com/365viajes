@@ -47,9 +47,12 @@ const desde = ref(props.modelValue?.desde || null)
 const hasta = ref(props.modelValue?.hasta || null)
 
 const emitUpdate = () => {
+  const d = desde.value
+  const h = hasta.value
   emit('update:modelValue', {
-    desde: desde.value,
-    hasta: hasta.value,
+    desde: d,
+    hasta: h,
+    range: d && h ? `${d},${h}` : null,
   })
 }
 

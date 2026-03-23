@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Sum, Q, Max, F
+from django.db.models import Sum, Q, Max, F, Prefetch
 from django.utils import timezone
 from django.http import HttpResponse
 from django.contrib.contenttypes.models import ContentType
@@ -47,6 +47,23 @@ class ReservaViewSet(viewsets.ModelViewSet):
     search_fields = ['pasajero', 'numero', 'numero_factura', 'observaciones']
     ordering_fields = '__all__'
     ordering = ['-fecha']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        numero_rango = self.request.query_params.get('numero_rango')
+        if numero_rango:
+            try:
+                parts = numero_rango.split('-')
+                if len(parts) == 2:
+                    start, end = int(parts[0]), int(parts[1])
+                    if start <= end <= start + 1000:
+                        numeros = [str(i) for i in range(start, end + 1)]
+                        qs = qs.filter(numero__in=numeros)
+                else:
+                    qs = qs.filter(numero=numero_rango)
+            except (ValueError, IndexError):
+                pass
+        return qs
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -141,6 +158,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
 
             reservas.append({
                 'id': r.id,
+                'numero': r.numero,
                 'cliente_nombre': r.cliente.nombre if r.cliente else '',
                 'fecha_primer_servicio': primer_servicio,
                 'girado_cuando': r.girado_cuando,
@@ -293,105 +311,124 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ReservaDetalleSerializer
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['pertenece_a', 'servicio', 'cuando', 'idioma',
-                        'seleccionado', 'pertenece_a__cliente', 'pertenece_a__estado']
+    filterset_fields = {
+        'pertenece_a': ['exact'],
+        'servicio': ['exact'],
+        'cuando': ['exact', 'gte', 'lte', 'range'],
+        'idioma': ['exact'],
+        'seleccionado': ['exact'],
+        'pertenece_a__cliente': ['exact'],
+        'pertenece_a__estado': ['exact'],
+    }
     search_fields = ['pertenece_a__pasajero']
     ordering_fields = '__all__'
 
     @action(detail=False, methods=['get'])
     def pdf_servicio_agencias(self, request):
-        """Genera PDF del informe de servicios por agencia"""
+        """Genera PDF del informe de servicios por agencia (agrupado por reserva)"""
         # Obtener parámetros
-        fecha_desde = request.query_params.get('cuando__gte')
-        fecha_hasta = request.query_params.get('cuando__lte')
+        fecha_range = request.query_params.get('cuando__range', '')
+        if ',' in fecha_range:
+            fecha_desde, fecha_hasta = fecha_range.split(',', 1)
+        else:
+            fecha_desde = request.query_params.get('cuando__gte')
+            fecha_hasta = request.query_params.get('cuando__lte')
         cliente_id = request.query_params.get('pertenece_a__cliente')
         estado = request.query_params.get('pertenece_a__estado')
 
         if not fecha_desde or not fecha_hasta or not cliente_id:
             return Response({'error': 'Faltan parámetros requeridos'}, status=400)
 
-        # Obtener datos
         from base.models import Cliente
         cliente = Cliente.objects.get(id=cliente_id)
 
-        # Servicios con relaciones necesarias
-        servicios_qs = self.get_queryset().filter(
-            cuando__gte=fecha_desde,
-            cuando__lte=fecha_hasta,
-            pertenece_a__cliente_id=cliente_id
-        ).select_related('servicio', 'recoger_en', 'pertenece_a')
-        if estado:
-            servicios_qs = servicios_qs.filter(pertenece_a__estado=estado)
+        # Obtener IDs de reservas con servicios o adicionales en el rango
+        servicio_reserva_ids = set(
+            ReservaDetalle.objects.filter(
+                cuando__gte=fecha_desde, cuando__lte=fecha_hasta,
+                pertenece_a__cliente_id=cliente_id
+            ).values_list('pertenece_a_id', flat=True)
+        )
+        adicional_reserva_ids = set(
+            ReservaAdicionalDetalle.objects.filter(
+                cuando__gte=fecha_desde, cuando__lte=fecha_hasta,
+                pertenece_a__cliente_id=cliente_id
+            ).values_list('pertenece_a_id', flat=True)
+        )
+        all_reserva_ids = servicio_reserva_ids | adicional_reserva_ids
 
-        # Crear lista con campos necesarios para el template
-        servicios = []
-        for s in servicios_qs:
-            servicios.append({
-                'cuando': s.cuando,
-                'servicio_nombre': s.servicio.nombre if s.servicio else '',
-                'numero_pax': s.numero_pax,
-                'pasajero': s.pertenece_a.pasajero,
-                'lugar_nombre': s.recoger_en.nombre if s.recoger_en else '',
-                'idioma_display': s.get_idioma_display(),
-                'estado_display': s.pertenece_a.get_estado_display(),
-                'total': s.total,
-                'estado': s.pertenece_a.estado,
-            })
-
-        # Adicionales con relaciones necesarias
-        adicionales_qs = ReservaAdicionalDetalle.objects.select_related(
-            'pertenece_a', 'adicional'
-        ).filter(
-            cuando__gte=fecha_desde,
-            cuando__lte=fecha_hasta,
-            pertenece_a__cliente_id=cliente_id
+        # Reservas con prefetch filtrado al rango de fechas
+        reservas_qs = Reserva.objects.filter(id__in=all_reserva_ids).prefetch_related(
+            Prefetch(
+                'reservadetalle_set',
+                queryset=ReservaDetalle.objects.filter(
+                    cuando__gte=fecha_desde, cuando__lte=fecha_hasta
+                ).select_related('servicio'),
+            ),
+            Prefetch(
+                'reservaadicionaldetalle_set',
+                queryset=ReservaAdicionalDetalle.objects.filter(
+                    cuando__gte=fecha_desde, cuando__lte=fecha_hasta
+                ).select_related('adicional'),
+            ),
         )
         if estado:
-            adicionales_qs = adicionales_qs.filter(pertenece_a__estado=estado)
+            reservas_qs = reservas_qs.filter(estado=estado)
 
-        # Crear lista con campos necesarios para el template
-        adicionales = []
-        for a in adicionales_qs:
-            adicionales.append({
-                'cuando': a.cuando,
-                'cantidad': a.cantidad,
-                'adicional_nombre': a.adicional.nombre if a.adicional else '',
-                'pasajero': a.pertenece_a.pasajero,
-                'adicional_contable': a.adicional.contable if a.adicional else True,
-                'estado_display': a.pertenece_a.get_estado_display(),
-                'total': a.total,
-                'estado': a.pertenece_a.estado,
+        # Construir datos agrupados por reserva
+        reservas_data = []
+        total_general = 0
+        total_pagado = 0
+        total_deuda = 0
+
+        for r in reservas_qs.order_by('id'):
+            servicios_lines = []
+            subtotal_servicios = 0
+            for d in r.reservadetalle_set.all():
+                nombre = d.servicio.nombre if d.servicio else ''
+                fecha = d.cuando.strftime('%d/%m/%Y')
+                servicios_lines.append(
+                    f"{d.numero_pax} x {nombre} ({fecha}) ({d.total:.2f})"
+                )
+                subtotal_servicios += float(d.total or 0)
+
+            adicionales_lines = []
+            subtotal_adicionales = 0
+            for a in r.reservaadicionaldetalle_set.all():
+                nombre = a.adicional.nombre if a.adicional else ''
+                fecha = a.cuando.strftime('%d/%m/%Y')
+                precio_unit = float(a.adicional.precio) if a.adicional else 0
+                adicionales_lines.append(
+                    f"{a.cantidad} x {nombre} ({fecha}) ({precio_unit:.2f}) {float(a.total):.2f}"
+                )
+                subtotal_adicionales += float(a.total or 0)
+
+            subtotal = subtotal_servicios + subtotal_adicionales
+            total_general += subtotal
+            if r.estado == '0':
+                total_pagado += subtotal
+            else:
+                total_deuda += subtotal
+
+            reservas_data.append({
+                'id': r.id,
+                'pasajero': r.pasajero,
+                'servicios': '\n'.join(servicios_lines),
+                'adicionales': '\n'.join(adicionales_lines),
+                'subtotal': subtotal,
+                'numero': r.numero or '',
+                'estado': r.get_estado_display(),
             })
-
-        # Calcular totales
-        total_servicios = sum(float(s['total'] or 0) for s in servicios)
-        total_servicios_pagados = sum(
-            float(s['total'] or 0) for s in servicios if s['estado'] == '0')
-        total_servicios_deuda = sum(
-            float(s['total'] or 0) for s in servicios if s['estado'] == '1')
-
-        total_adicionales = sum(float(a['total'] or 0) for a in adicionales)
-        total_adicionales_pagados = sum(
-            float(a['total'] or 0) for a in adicionales if a['estado'] == '0')
-        total_adicionales_deuda = sum(
-            float(a['total'] or 0) for a in adicionales if a['estado'] == '1')
 
         context = {
             'cliente_nombre': cliente.nombre,
             'fecha_desde': fecha_desde,
             'fecha_hasta': fecha_hasta,
             'estado_filter': dict([('0', 'Pagado'), ('1', 'Deuda')]).get(estado) if estado else None,
-            'servicios': servicios,
-            'adicionales': adicionales,
-            'total_servicios': total_servicios,
-            'total_servicios_pagados': total_servicios_pagados,
-            'total_servicios_deuda': total_servicios_deuda,
-            'total_adicionales': total_adicionales,
-            'total_adicionales_pagados': total_adicionales_pagados,
-            'total_adicionales_deuda': total_adicionales_deuda,
-            'total_general': total_servicios + total_adicionales,
-            'total_general_pagado': total_servicios_pagados + total_adicionales_pagados,
-            'total_general_deuda': total_servicios_deuda + total_adicionales_deuda,
+            'reservas': reservas_data,
+            'total_general': total_general,
+            'total_pagado': total_pagado,
+            'total_deuda': total_deuda,
         }
 
         pdf_gen = PDFGenerator('pdf/servicio_agencias.html',
@@ -408,7 +445,9 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
         Reporte Biblia Digital
         Devuelve detalles de reservas para crear órdenes de servicio
         """
-        queryset = self.get_queryset()
+        queryset = self.get_queryset().prefetch_related(
+            'pertenece_a__reservaadicionaldetalle_set__adicional'
+        )
 
         # Filtros
         servicio_id = request.query_params.get('servicio')
@@ -502,6 +541,10 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
                 'estado': detalle.pertenece_a.estado,
                 'estado_display': detalle.pertenece_a.get_estado_display(),
                 'girado_por': detalle.pertenece_a.girado_por.username if detalle.pertenece_a.girado_por else '',
+                'adicionales': '\n'.join(
+                    f"{ad.adicional.nombre} x{ad.cantidad}"
+                    for ad in detalle.pertenece_a.reservaadicionaldetalle_set.all()
+                ),
             })
 
         return Response({
@@ -521,16 +564,25 @@ class ReservaAdicionalDetalleViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ReservaAdicionalDetalleSerializer
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['pertenece_a', 'adicional', 'cuando',
-                        'pertenece_a__cliente', 'pertenece_a__estado']
+    filterset_fields = {
+        'pertenece_a': ['exact'],
+        'adicional': ['exact'],
+        'cuando': ['exact', 'gte', 'lte', 'range'],
+        'pertenece_a__cliente': ['exact'],
+        'pertenece_a__estado': ['exact'],
+    }
     search_fields = ['pertenece_a__pasajero']
     ordering_fields = '__all__'
 
     @action(detail=False, methods=['get'])
     def pdf_adicionales(self, request):
         """Genera PDF del informe de adicionales"""
-        fecha_desde = request.query_params.get('cuando__gte')
-        fecha_hasta = request.query_params.get('cuando__lte')
+        fecha_range = request.query_params.get('cuando__range', '')
+        if ',' in fecha_range:
+            fecha_desde, fecha_hasta = fecha_range.split(',', 1)
+        else:
+            fecha_desde = request.query_params.get('cuando__gte')
+            fecha_hasta = request.query_params.get('cuando__lte')
         adicional_id = request.query_params.get('adicional')
 
         if not fecha_desde or not fecha_hasta or not adicional_id:

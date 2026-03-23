@@ -267,11 +267,11 @@ const columns = [
     sortable: true,
   },
   {
-    name: 'servicio_nombre',
-    label: 'Servicio',
-    field: 'servicio_nombre',
+    name: 'adicionales',
+    label: 'Adicionales',
+    field: 'adicionales',
     align: 'left',
-    sortable: true,
+    style: 'white-space: pre-line',
   },
   {
     name: 'destino',
@@ -365,8 +365,8 @@ const loadDetalles = async (props) => {
       ordering: (descending ? '-' : '') + sortBy,
     }
 
-    if (filters.value.fechas.desde && filters.value.fechas.hasta) {
-      params.fecha__range = `${filters.value.fechas.desde},${filters.value.fechas.hasta}`
+    if (filters.value.fechas.range) {
+      params.fecha__range = filters.value.fechas.range
     } else if (filters.value.fechas.desde) {
       params.fecha__gte = filters.value.fechas.desde
     } else if (filters.value.fechas.hasta) {

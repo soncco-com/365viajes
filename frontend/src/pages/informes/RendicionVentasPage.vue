@@ -77,7 +77,7 @@
 
       <template v-slot:bottom-row>
         <q-tr class="bg-grey-2 text-weight-bold">
-          <q-td colspan="7" class="text-right">TOTAL:</q-td>
+          <q-td colspan="8" class="text-right">TOTAL:</q-td>
           <q-td class="text-right">S/ {{ totalGeneral.toFixed(2) }}</q-td>
         </q-tr>
       </template>
@@ -121,6 +121,7 @@ const tipoPagoOptions = [
 
 const columns = [
   { name: 'id', label: 'ID Reserva', field: 'id', align: 'left', sortable: true },
+  { name: 'numero', label: 'Num. Recibo', field: 'numero', align: 'center', sortable: true },
   {
     name: 'cliente',
     label: 'Agencia',

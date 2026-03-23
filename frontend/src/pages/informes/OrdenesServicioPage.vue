@@ -207,8 +207,11 @@ const loadOrdenes = async (props) => {
       ordering: (descending ? '-' : '') + sortBy,
     }
 
-    if (filters.value.fecha.desde && filters.value.fecha.hasta) {
+    if (filters.value.fecha.range) {
+      params.fecha__range = filters.value.fecha.range
+    } else if (filters.value.fecha.desde) {
       params.fecha__gte = filters.value.fecha.desde
+    } else if (filters.value.fecha.hasta) {
       params.fecha__lte = filters.value.fecha.hasta
     }
     if (filters.value.servicio) {

@@ -426,8 +426,7 @@ const loadReporte = async () => {
 
   try {
     const params = {
-      cuando__gte: filters.value.fecha.desde,
-      cuando__lte: filters.value.fecha.hasta,
+      cuando__range: filters.value.fecha.range,
       pertenece_a__cliente: filters.value.cliente?.id || filters.value.cliente,
     }
 
@@ -478,8 +477,7 @@ const imprimirPDF = async () => {
   loadingPDF.value = true
   try {
     const params = {
-      cuando__gte: filters.value.fecha.desde,
-      cuando__lte: filters.value.fecha.hasta,
+      cuando__range: filters.value.fecha.range,
       pertenece_a__cliente: filters.value.cliente?.id || filters.value.cliente,
     }
 
