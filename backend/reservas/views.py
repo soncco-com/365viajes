@@ -387,8 +387,10 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
             for d in r.reservadetalle_set.all():
                 nombre = d.servicio.nombre if d.servicio else ''
                 fecha = d.cuando.strftime('%d/%m/%Y')
+                precio_unit = float(d.precio_aplicado) if d.precio_aplicado else (
+                    float(d.servicio.precio) if d.servicio else 0)
                 servicios_lines.append(
-                    f"{d.numero_pax} x {nombre} ({fecha}) ({d.total:.2f})"
+                    f"{d.numero_pax} x {nombre} ({fecha}) ({precio_unit:.2f}) {float(d.total):.2f}"
                 )
                 subtotal_servicios += float(d.total or 0)
 
@@ -397,7 +399,8 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
             for a in r.reservaadicionaldetalle_set.all():
                 nombre = a.adicional.nombre if a.adicional else ''
                 fecha = a.cuando.strftime('%d/%m/%Y')
-                precio_unit = float(a.adicional.precio) if a.adicional else 0
+                precio_unit = float(a.precio_aplicado) if a.precio_aplicado else (
+                    float(a.adicional.precio) if a.adicional else 0)
                 adicionales_lines.append(
                     f"{a.cantidad} x {nombre} ({fecha}) ({precio_unit:.2f}) {float(a.total):.2f}"
                 )
@@ -606,7 +609,7 @@ class ReservaAdicionalDetalleViewSet(viewsets.ReadOnlyModelViewSet):
                 'reserva_pasajero': a.pertenece_a.pasajero,
                 'adicional_nombre': a.adicional.nombre if a.adicional else '',
                 'cantidad': a.cantidad,
-                'adicional_precio': a.adicional.precio if a.adicional else 0,
+                'adicional_precio': float(a.precio_aplicado) if a.precio_aplicado else (float(a.adicional.precio) if a.adicional else 0),
                 'adicional_contable': a.adicional.contable if a.adicional else True,
                 'total': a.total,
             })

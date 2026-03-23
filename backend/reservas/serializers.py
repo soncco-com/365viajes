@@ -68,7 +68,8 @@ class ReservaAdicionalDetalleWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReservaAdicionalDetalle
-        fields = ['id', 'adicional', 'cantidad', 'total', 'cuando']
+        fields = ['id', 'adicional', 'cantidad', 'total', 'cuando',
+                  'precio_aplicado', 'observacion_precio']
 
 
 class ReservaSerializer(serializers.ModelSerializer):
