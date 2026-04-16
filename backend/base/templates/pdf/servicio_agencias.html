@@ -1,9 +1,15 @@
 <!-- prettier-ignore-start -->
 {% extends 'pdf/base.html' %}
-{% block title %}Informe de Servicios por Agencia{% endblock %}
+{% block title %}Informe de Servicios Prestados{% endblock %}
 {% block content %}
 
-<h2 style="margin: 0 0 6px 0; font-size: 12pt; text-align: center; color: #37474f; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #d84315; padding-bottom: 4px;">SERVICIOS Y ADICIONALES POR AGENCIA</h2>
+<!-- Cabecera simple: logo + título -->
+<div style="display: flex; align-items: center; border-bottom: 2px solid #d84315; padding-bottom: 4px; margin-bottom: 8px; gap: 8px;">
+  {% if logo_base64 %}
+  <img src="{{ logo_base64 }}" alt="Logo" style="height: 32px; width: auto; flex-shrink: 0;">
+  {% endif %}
+  <h2 style="margin: 0; font-size: 12pt; color: #37474f; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; flex: 1; text-align: center;">INFORME DE SERVICIOS PRESTADOS</h2>
+</div>
 
 <table class="no-border" style="margin-bottom: 8px; font-size: 9pt">
 <tr>
@@ -30,7 +36,7 @@
     <th width="15%">Pasajero</th>
     <th width="32%">Servicios - Fecha</th>
     <th width="28%">Adicionales</th>
-    <th class="text-right" width="10%">Total</th>
+    <th class="text-right" width="10%">Total (S/)</th>
     <th width="10%">Num Recibo</th>
   </tr>
 </thead>
@@ -41,7 +47,7 @@
     <td>{{ r.pasajero }}</td>
     <td style="white-space: pre-line; font-size: 7pt;">{{ r.servicios }}</td>
     <td style="white-space: pre-line; font-size: 7pt;">{{ r.adicionales }}</td>
-    <td class="text-right"><strong>S/ {{ r.subtotal|floatformat:2 }}</strong></td>
+    <td class="text-right"><strong>{{ r.subtotal|floatformat:2 }}</strong></td>
     <td class="text-center">{{ r.numero }}</td>
   </tr>
   {% endfor %}

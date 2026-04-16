@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.serializers import serialize
 import json
 
-from .models import Auditoria
+from .models import Auditoria, Servicio, OrdenServicioColumna, COLUMNAS_DEFECTO
 
 
 # Lista de modelos que NO deben ser auditados
@@ -164,3 +164,20 @@ def auditar_eliminacion(sender, instance, **kwargs):
         datos_anteriores=datos_anteriores,
         ip_address=obtener_ip_actual()
     )
+
+
+@receiver(post_save, sender=Servicio)
+def crear_columnas_orden_servicio(sender, instance, created, **kwargs):
+    """Al crear un Servicio, pobla automáticamente las columnas de Orden de Servicio con los valores por defecto"""
+    if created:
+        for col in COLUMNAS_DEFECTO:
+            OrdenServicioColumna.objects.get_or_create(
+                servicio=instance,
+                clave=col['clave'],
+                defaults={
+                    'etiqueta': col['etiqueta'],
+                    'ancho': col['ancho'],
+                    'orden': col['orden'],
+                    'visible': col['visible'],
+                }
+            )

@@ -13,7 +13,8 @@ from django.contrib.contenttypes.models import ContentType
 from datetime import datetime
 
 from .models import Reserva, ReservaDetalle, ReservaAdicionalDetalle, OrdenServicio, OrdenServicioDetalle, Gasto
-from base.models import Auditoria
+from types import SimpleNamespace
+from base.models import Auditoria, OrdenServicioColumna, COLUMNAS_DEFECTO
 from .serializers import (
     ReservaSerializer, ReservaDetalleSerializer, ReservaAdicionalDetalleSerializer,
     OrdenServicioSerializer, OrdenServicioDetalleSerializer, GastoSerializer
@@ -36,6 +37,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = {
+        'id': ['exact'],
         'cliente': ['exact'],
         'estado': ['exact'],
         'tipo_documento': ['exact'],
@@ -423,10 +425,18 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
                 'estado': r.get_estado_display(),
             })
 
+        from datetime import datetime
+
+        def _fmt(s):
+            try:
+                return datetime.strptime(s, '%Y-%m-%d').strftime('%d/%m/%Y')
+            except Exception:
+                return s
+
         context = {
             'cliente_nombre': cliente.nombre,
-            'fecha_desde': fecha_desde,
-            'fecha_hasta': fecha_hasta,
+            'fecha_desde': _fmt(fecha_desde),
+            'fecha_hasta': _fmt(fecha_hasta),
             'estado_filter': dict([('0', 'Pagado'), ('1', 'Deuda')]).get(estado) if estado else None,
             'reservas': reservas_data,
             'total_general': total_general,
@@ -435,7 +445,7 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
         }
 
         pdf_gen = PDFGenerator('pdf/servicio_agencias.html',
-                               context, orientation='portrait')
+                               context, orientation='portrait', include_header=False)
         pdf_bytes = pdf_gen.generate()
 
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
@@ -729,21 +739,36 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def pdf(self, request, pk=None):
         """
-        Genera PDF de la orden de servicio
+        Genera PDF de la orden de servicio con columnas configurables por Servicio.
         Parámetros query:
-        - mostrar_agencia: true/false (por defecto true) - Muestra información de agencias
+        - mostrar_agencia: true/false (default true) — override para la columna agencia
         """
         try:
             orden = self.get_object()
 
-            # Obtener parámetro para mostrar/ocultar agencia
             mostrar_agencia = request.query_params.get(
                 'mostrar_agencia', 'true').lower() == 'true'
 
-            # Obtener paradas del servicio
+            # --- Columnas configuradas ---
+            columnas_qs = OrdenServicioColumna.objects.filter(
+                servicio=orden.servicio, visible=True
+            ).order_by('orden')
+
+            if columnas_qs.exists():
+                columnas = list(columnas_qs)
+            else:
+                # Backward-compatible: usar columnas default si no hay config
+                columnas = [SimpleNamespace(**c) for c in COLUMNAS_DEFECTO]
+
+            # Aplicar override mostrar_agencia
+            claves_visibles = {c.clave for c in columnas}
+            if not mostrar_agencia:
+                claves_visibles.discard('agencia')
+
+            # --- Paradas del servicio ---
             paradas = orden.servicio.paradas.all().order_by('orden')
 
-            # Obtener todos los adicionales de esta fecha de una vez
+            # --- Adicionales de la fecha ---
             adicionales_fecha = ReservaAdicionalDetalle.objects.filter(
                 cuando=orden.fecha
             ).select_related('adicional', 'pertenece_a').values(
@@ -752,22 +777,16 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 'cantidad'
             )
 
-            # Crear diccionario de adicionales por reserva
             adicionales_por_reserva = {}
             for adic in adicionales_fecha:
-                reserva_id = adic['pertenece_a_id']
-                if reserva_id not in adicionales_por_reserva:
-                    adicionales_por_reserva[reserva_id] = []
-                adicionales_por_reserva[reserva_id].append(adic)
+                rid = adic['pertenece_a_id']
+                adicionales_por_reserva.setdefault(rid, []).append(adic)
 
-            # Procesar detalles
+            # --- Procesar detalles ---
             detalles_procesados = []
             total_pax = 0
             total_ingresos = 0
             total_almuerzos = 0
-            tiene_ingresos = False
-            tiene_almuerzos = False
-            tiene_destinos = False
             adicionales_usados = set()
 
             for detalle_orden in orden.ordenserviciodetalle_set.select_related(
@@ -776,7 +795,6 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 reserva_detalle = detalle_orden.referencia
                 reserva = reserva_detalle.pertenece_a
 
-                # Obtener adicionales de esta reserva para esta fecha
                 adicionales = adicionales_por_reserva.get(reserva.id, [])
 
                 ingresos_count = 0
@@ -786,13 +804,10 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 otros_adicionales = []
 
                 for adicional in adicionales:
-                    # Evitar duplicados
                     if adicional['pk'] in adicionales_usados:
                         continue
-
                     adicionales_usados.add(adicional['pk'])
 
-                    # Solo procesar adicionales visibles
                     if not adicional['adicional__visible']:
                         continue
 
@@ -800,14 +815,11 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                         ingresos_count += adicional['cantidad']
                         ingresos_list.append(
                             f"{adicional['cantidad']}x {adicional['adicional__nombre']}")
-                        tiene_ingresos = True
                     elif adicional['adicional__almuerzo']:
                         almuerzos_count += adicional['cantidad']
                         almuerzos_list.append(
                             f"{adicional['cantidad']}x {adicional['adicional__nombre']}")
-                        tiene_almuerzos = True
                     else:
-                        # Adicionales que no son ingresos ni almuerzos
                         otros_adicionales.append(
                             f"{adicional['cantidad']}x {adicional['adicional__nombre']}")
 
@@ -815,54 +827,41 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 total_ingresos += ingresos_count
                 total_almuerzos += almuerzos_count
 
-                # Preferir observaciones del detalle, si no usar las de la reserva
                 obs_detalle = reserva_detalle.observaciones or ''
                 obs_reserva = reserva.observaciones or ''
                 observaciones_final = obs_detalle if obs_detalle else obs_reserva
 
+                # Datos por clave para el template dinámico
                 detalles_procesados.append({
-                    'numero_pax': reserva_detalle.numero_pax,
-                    'lugar_nombre': reserva_detalle.recoger_en.nombre,
+                    'pax': reserva_detalle.numero_pax,
+                    'hotel': reserva_detalle.recoger_en.nombre if reserva_detalle.recoger_en else '',
                     'pasajero': reserva.pasajero,
                     'agencia': reserva.cliente.nombre if reserva.cliente else '',
-                    'destino': reserva_detalle.destino,
-                    'ingresos': ', '.join(ingresos_list) if ingresos_list else None,
-                    'almuerzos': ', '.join(almuerzos_list) if almuerzos_list else None,
+                    'destino': reserva_detalle.destino or '',
+                    'ingresos': '\n'.join(ingresos_list) if ingresos_list else '',
+                    'almuerzo': '\n'.join(almuerzos_list) if almuerzos_list else '',
+                    'adicionales': '\n'.join(otros_adicionales) if otros_adicionales else '',
                     'observaciones': observaciones_final,
-                    'otros_adicionales': ', '.join(otros_adicionales) if otros_adicionales else None,
+                    # totales internos para la fila de totales
+                    '_ingresos_count': ingresos_count,
+                    '_almuerzos_count': almuerzos_count,
                 })
-
-                if reserva_detalle.destino:
-                    tiene_destinos = True
-
-            # Recopilar agencias únicas de las reservas
-            agencias = []
-            if mostrar_agencia:
-                agencias_set = set()
-                for detalle_orden in orden.ordenserviciodetalle_set.select_related(
-                    'referencia__pertenece_a__cliente'
-                ).all():
-                    if detalle_orden.referencia.pertenece_a.cliente:
-                        agencias_set.add(
-                            detalle_orden.referencia.pertenece_a.cliente.nombre)
-                agencias = sorted(list(agencias_set))
 
             context = {
                 'orden': orden,
                 'paradas': paradas,
+                'columnas': [
+                    c for c in columnas if c.clave in claves_visibles
+                ],
                 'detalles': detalles_procesados,
                 'total_pax': total_pax,
                 'total_ingresos': total_ingresos,
                 'total_almuerzos': total_almuerzos,
-                'tiene_ingresos': tiene_ingresos,
-                'tiene_almuerzos': tiene_almuerzos,
-                'tiene_destinos': tiene_destinos,
                 'mostrar_agencia': mostrar_agencia,
-                'agencias': agencias,
             }
 
             pdf_gen = PDFGenerator(
-                'pdf/orden_servicio.html', context, orientation='portrait')
+                'pdf/orden_servicio.html', context, orientation='portrait', include_header=False)
             pdf_bytes = pdf_gen.generate()
 
             response = HttpResponse(pdf_bytes, content_type='application/pdf')

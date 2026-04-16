@@ -123,6 +123,64 @@ class ServicioParada(models.Model):
         return f'{self.servicio.nombre} - {self.nombre}'
 
 
+COLUMNAS_ORDEN_SERVICIO = (
+    ('pax', 'PAX'),
+    ('hotel', 'Hotel / Recojo'),
+    ('pasajero', 'Pasajero'),
+    ('agencia', 'Agencia'),
+    ('destino', 'Destino'),
+    ('ingresos', 'Ingresos / Boletos'),
+    ('almuerzo', 'Almuerzo'),
+    ('adicionales', 'Adicionales'),
+    ('observaciones', 'Observaciones'),
+)
+
+COLUMNAS_DEFECTO = [
+    {'clave': 'pax',          'etiqueta': 'PAX',
+        'ancho': 5,  'orden': 0,  'visible': True},
+    {'clave': 'hotel',        'etiqueta': 'Hotel',
+        'ancho': 18, 'orden': 1,  'visible': True},
+    {'clave': 'pasajero',     'etiqueta': 'Pasajero',
+        'ancho': 20, 'orden': 2,  'visible': True},
+    {'clave': 'agencia',      'etiqueta': 'Agencia',
+        'ancho': 14, 'orden': 3,  'visible': True},
+    {'clave': 'destino',      'etiqueta': 'Destino',
+        'ancho': 12, 'orden': 4,  'visible': True},
+    {'clave': 'ingresos',     'etiqueta': 'Ingresos',
+        'ancho': 7,  'orden': 5,  'visible': True},
+    {'clave': 'almuerzo',     'etiqueta': 'Almuerzo',
+        'ancho': 7,  'orden': 6,  'visible': True},
+    {'clave': 'adicionales',  'etiqueta': 'Adicionales',
+        'ancho': 12, 'orden': 7,  'visible': True},
+    {'clave': 'observaciones', 'etiqueta': 'Obs.',
+        'ancho': 10, 'orden': 8,  'visible': True},
+]
+
+
+class OrdenServicioColumna(models.Model):
+    """Configuración de columnas del PDF de Orden de Servicio por Servicio"""
+    servicio = models.ForeignKey(
+        Servicio, on_delete=models.CASCADE, related_name='columnas_orden')
+    clave = models.CharField(max_length=20, choices=COLUMNAS_ORDEN_SERVICIO)
+    etiqueta = models.CharField(
+        max_length=60, help_text='Texto del encabezado de la columna en el PDF')
+    ancho = models.IntegerField(
+        default=10, help_text='Ancho aproximado en % del total de la tabla')
+    orden = models.IntegerField(
+        default=0, help_text='Posición de la columna (0 = más a la izquierda)')
+    visible = models.BooleanField(
+        default=True, help_text='Si False, la columna no aparece en el PDF')
+
+    class Meta:
+        verbose_name = 'Columna de Orden de Servicio'
+        verbose_name_plural = 'Columnas de Orden de Servicio'
+        unique_together = ['servicio', 'clave']
+        ordering = ['orden']
+
+    def __str__(self):
+        return f'{self.servicio.nombre} — {self.get_clave_display()}'
+
+
 class Adicional(models.Model):
     nombre = models.CharField(max_length=255)
     precio = models.DecimalField(

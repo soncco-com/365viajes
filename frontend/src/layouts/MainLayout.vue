@@ -166,6 +166,14 @@
                   <q-item-label>Paradas de Servicios</q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item clickable v-close-popup to="/admin/orden-servicio-columnas" class="q-pl-md">
+                <q-item-section avatar>
+                  <q-icon name="view_column" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Columnas OS</q-item-label>
+                </q-item-section>
+              </q-item>
 
               <q-separator spaced />
 
@@ -493,6 +501,20 @@
               </q-item-section>
               <q-item-section>
                 <q-item-label>Paradas de Servicios</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/admin/orden-servicio-columnas"
+              @click="leftDrawerOpen = false"
+              class="q-pl-xl"
+            >
+              <q-item-section avatar>
+                <q-icon name="view_column" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Columnas OS</q-item-label>
               </q-item-section>
             </q-item>
 

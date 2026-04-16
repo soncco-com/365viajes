@@ -3,8 +3,13 @@
 {% block title %}{{ orden.servicio.nombre }} - {{ orden.fecha|date:'d/m/Y' }}{% endblock %}
 {% block content %}
 
-<!-- Título: Nombre del servicio (sin fondo, ahorra tinta) -->
-<h1 style="margin: 0 0 6px 0; font-size: 12pt; text-align: center; color: #37474f; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #d84315; padding-bottom: 4px;">{{ orden.servicio.nombre }}</h1>
+<!-- Cabecera: logo + nombre del servicio en el mismo renglón -->
+<div style="display: flex; align-items: center; border-bottom: 2px solid #d84315; padding-bottom: 4px; margin-bottom: 6px; gap: 8px;">
+  {% if logo_base64 %}
+  <img src="{{ logo_base64 }}" alt="Logo" style="height: 32px; width: auto; flex-shrink: 0;">
+  {% endif %}
+  <h1 style="margin: 0; font-size: 12pt; color: #37474f; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; flex: 1; text-align: center;">{{ orden.servicio.nombre }}</h1>
+</div>
 
 <!-- Info del servicio -->
 <div style="border: 1px solid #ccc; border-radius: 3px; padding: 6px; margin-bottom: 6px;">
@@ -41,9 +46,8 @@
         <span style="color: #888; font-size: 7pt;">Tel: {{ orden.chofer.telefono }}</span>
       </td>
       <td class="no-border" width="34%" style="padding: 2px;">
-        {% if orden.responsable %}<strong style="color: #37474f;">Responsable:</strong> {{ orden.responsable.nombre }}<br>
-        <span style="color: #888; font-size: 7pt;">Tel: {{ orden.responsable.telefono|default:'-' }}</span>
-        {% else %}<strong style="color: #37474f;">Responsable:</strong> <span style="color: #aaa;">No asignado</span>{% endif %}
+        <strong style="color: #37474f;">Responsable:</strong>
+        {% if orden.responsable %}{{ orden.responsable.nombre }}{% else %}<span style="color: #aaa;">No asignado</span>{% endif %}
       </td>
     </tr>
   </table>
@@ -56,58 +60,61 @@
 </div>
 {% endif %}
 
-<!-- Tabla de Detalles -->
+<!-- Tabla de Detalles — columnas configuradas dinámicamente por servicio -->
 <div style="margin: 4px 0 3px 0; font-size: 9pt; color: #37474f; font-weight: bold; border-bottom: 1px solid #37474f; padding-bottom: 2px;">Pasajeros ({{ detalles|length }})</div>
 <table style="font-size: 7pt;">
   <thead>
     <tr style="background-color: #37474f; color: white;">
-      <th width="5%">PAX</th>
-      <th width="18%">Hotel</th>
-      <th width="20%">Pasajero</th>
-      {% if mostrar_agencia %}<th width="14%">Agencia</th>{% endif %}
-      {% if tiene_destinos %}<th width="12%">Destino</th>{% endif %}
-      {% if tiene_ingresos %}<th width="7%">Ingresos</th>{% endif %}
-      {% if tiene_almuerzos %}<th width="7%">Almuerzo</th>{% endif %}
-      <th width="12%">Adicionales</th>
-      <th width="10%">Obs.</th>
+      {% for col in columnas %}
+      <th width="{{ col.ancho }}%">{{ col.etiqueta }}</th>
+      {% endfor %}
     </tr>
   </thead>
   <tbody>
     {% for detalle in detalles %}
     <tr>
-      <td class="text-center">{{ detalle.numero_pax }}</td>
-      <td>{{ detalle.lugar_nombre }}</td>
-      <td>{{ detalle.pasajero }}</td>
-      {% if mostrar_agencia %}<td style="font-size: 6pt;">{{ detalle.agencia|default:'-' }}</td>{% endif %}
-      {% if tiene_destinos %}<td>{{ detalle.destino|default:'-' }}</td>{% endif %}
-      {% if tiene_ingresos %}
-      <td style="font-size: 6pt;">{% if detalle.ingresos %}<span style="color: #2e7d32;">{{ detalle.ingresos }}</span>{% else %}-{% endif %}</td>
-      {% endif %}
-      {% if tiene_almuerzos %}
-      <td style="font-size: 6pt;">{% if detalle.almuerzos %}<span style="color: #e65100;">{{ detalle.almuerzos }}</span>{% else %}-{% endif %}</td>
-      {% endif %}
-      <td style="font-size: 6pt;">{% if detalle.otros_adicionales %}{{ detalle.otros_adicionales }}{% else %}-{% endif %}</td>
-      <td style="font-size: 6pt;">{{ detalle.observaciones|default:'-' }}</td>
+      {% for col in columnas %}
+        {% if col.clave == 'pax' %}
+          <td class="text-center">{{ detalle.pax }}</td>
+        {% elif col.clave == 'hotel' %}
+          <td>{{ detalle.hotel|default:'-' }}</td>
+        {% elif col.clave == 'pasajero' %}
+          <td>{{ detalle.pasajero }}</td>
+        {% elif col.clave == 'agencia' %}
+          <td style="font-size: 6pt;">{{ detalle.agencia|default:'-' }}</td>
+        {% elif col.clave == 'destino' %}
+          <td>{{ detalle.destino|default:'-' }}</td>
+        {% elif col.clave == 'ingresos' %}
+          <td style="font-size: 6pt;">{% if detalle.ingresos %}<span style="color: #2e7d32;">{{ detalle.ingresos|linebreaksbr }}</span>{% else %}-{% endif %}</td>
+        {% elif col.clave == 'almuerzo' %}
+          <td style="font-size: 6pt;">{% if detalle.almuerzo %}<span style="color: #e65100;">{{ detalle.almuerzo|linebreaksbr }}</span>{% else %}-{% endif %}</td>
+        {% elif col.clave == 'adicionales' %}
+          <td style="font-size: 6pt;">{% if detalle.adicionales %}{{ detalle.adicionales|linebreaksbr }}{% else %}-{% endif %}</td>
+        {% elif col.clave == 'observaciones' %}
+          <td style="font-size: 6pt;">{{ detalle.observaciones|default:'-' }}</td>
+        {% else %}
+          <td>-</td>
+        {% endif %}
+      {% endfor %}
     </tr>
     {% endfor %}
     {% for i in "123" %}
-    <tr>
-      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-      {% if mostrar_agencia %}<td>&nbsp;</td>{% endif %}
-      {% if tiene_destinos %}<td>&nbsp;</td>{% endif %}
-      {% if tiene_ingresos %}<td>&nbsp;</td>{% endif %}
-      {% if tiene_almuerzos %}<td>&nbsp;</td>{% endif %}
-      <td>&nbsp;</td><td>&nbsp;</td>
-    </tr>
+    <tr>{% for col in columnas %}<td>&nbsp;</td>{% endfor %}</tr>
     {% endfor %}
     <tr class="totales" style="background-color: #f5f5f5;">
-      <td class="text-center"><strong style="color: #d84315;">{{ total_pax }}</strong></td>
-      <td colspan="2"><strong>TOTAL</strong></td>
-      {% if mostrar_agencia %}<td></td>{% endif %}
-      {% if tiene_destinos %}<td></td>{% endif %}
-      {% if tiene_ingresos %}<td class="text-center"><strong>{{ total_ingresos }}</strong></td>{% endif %}
-      {% if tiene_almuerzos %}<td class="text-center"><strong>{{ total_almuerzos }}</strong></td>{% endif %}
-      <td></td><td></td>
+      {% for col in columnas %}
+        {% if col.clave == 'pax' %}
+          <td class="text-center"><strong style="color: #d84315;">{{ total_pax }}</strong></td>
+        {% elif col.clave == 'hotel' %}
+          <td><strong>TOTAL</strong></td>
+        {% elif col.clave == 'ingresos' %}
+          <td class="text-center"><strong>{{ total_ingresos }}</strong></td>
+        {% elif col.clave == 'almuerzo' %}
+          <td class="text-center"><strong>{{ total_almuerzos }}</strong></td>
+        {% else %}
+          <td></td>
+        {% endif %}
+      {% endfor %}
     </tr>
   </tbody>
 </table>

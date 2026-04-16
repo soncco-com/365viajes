@@ -52,22 +52,6 @@
                 </template>
               </autocomplete-input>
 
-              <q-input
-                v-if="detalle.servicio?.mostrar_destinos"
-                :model-value="detalle.destino"
-                @update:model-value="$emit('update-destino', index, $event)"
-                label="Destino final"
-                dense
-                outlined
-                placeholder="Ej: Hotel, Aeropuerto"
-                hint="Especifica el destino final del servicio"
-                class="q-mb-md"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="place" color="primary" />
-                </template>
-              </q-input>
-
               <autocomplete-input
                 :model-value="detalle.recoger_en"
                 @update:model-value="$emit('update-recoger-en', index, $event)"
@@ -123,6 +107,22 @@
                   <q-icon name="event" />
                 </template>
               </date-picker>
+
+              <q-input
+                v-if="detalle.servicio?.mostrar_destinos"
+                :model-value="detalle.destino"
+                @update:model-value="$emit('update-destino', index, $event)"
+                label="Destino final"
+                dense
+                outlined
+                placeholder="Ej: Hotel, Aeropuerto"
+                hint="Especifica el destino final del servicio"
+                class="q-mb-md"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="place" color="primary" />
+                </template>
+              </q-input>
 
               <q-input
                 :model-value="detalle.observaciones"

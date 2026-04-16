@@ -162,21 +162,6 @@
                         </template>
                       </autocomplete-input>
 
-                      <q-input
-                        v-if="detalle.servicio?.mostrar_destinos"
-                        v-model="detalle.destino"
-                        label="Destino final"
-                        dense
-                        outlined
-                        placeholder="Ej: Hotel, Aeropuerto"
-                        hint="Especifica el destino final del servicio"
-                        class="q-mb-md"
-                      >
-                        <template v-slot:prepend>
-                          <q-icon name="place" color="primary" />
-                        </template>
-                      </q-input>
-
                       <autocomplete-input
                         v-model="detalle.recoger_en"
                         endpoint="base/lugares"
@@ -229,6 +214,21 @@
                           <q-icon name="event" />
                         </template>
                       </date-picker>
+
+                      <q-input
+                        v-if="detalle.servicio?.mostrar_destinos"
+                        v-model="detalle.destino"
+                        label="Destino final"
+                        dense
+                        outlined
+                        placeholder="Ej: Hotel, Aeropuerto"
+                        hint="Especifica el destino final del servicio"
+                        class="q-mb-md"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="place" color="primary" />
+                        </template>
+                      </q-input>
 
                       <q-input
                         v-model="detalle.observaciones"

@@ -6,6 +6,12 @@
     <q-card flat bordered class="q-mt-md">
       <q-card-section>
         <div class="row q-col-gutter-md">
+          <div class="col-12 col-md-2">
+            <q-input v-model="filters.id" label="ID" outlined dense clearable type="number" />
+          </div>
+          <div class="col-12 col-md-3">
+            <q-input v-model="filters.pasajero" label="Pasajero" outlined dense clearable />
+          </div>
           <div class="col-12 col-md-3">
             <date-range-picker v-model="filters.fecha" label="Rango de fechas" />
           </div>
@@ -206,6 +212,8 @@ const pdfUrl = ref('')
 const totales = ref({ total: 0, total_nocontable: 0, total_neto: 0, cantidad: 0 })
 
 const filters = ref({
+  id: null,
+  pasajero: '',
   fecha: { desde: '', hasta: '', range: null },
   cliente_id: null,
   estado: null,
@@ -326,6 +334,14 @@ const loadReservas = async (props) => {
       ordering: (descending ? '-' : '') + sortBy,
     }
 
+    if (filters.value.id) {
+      params.id = filters.value.id
+    }
+
+    if (filters.value.pasajero) {
+      params.search = filters.value.pasajero
+    }
+
     // Añadir filtros
     if (filters.value.fecha.range) {
       params.fecha__range = filters.value.fecha.range
@@ -394,6 +410,8 @@ const onRequest = (props) => {
 
 const clearFilters = () => {
   filters.value = {
+    id: null,
+    pasajero: '',
     fecha: { desde: '', hasta: '', range: null },
     cliente_id: null,
     estado: null,

@@ -148,6 +148,12 @@ const routes = [
         meta: { requiresAdmin: true },
       },
       {
+        path: '/admin/orden-servicio-columnas',
+        name: 'admin-orden-servicio-columnas',
+        component: () => import('pages/admin/OrdenServicioColumnasPage.vue'),
+        meta: { requiresAdmin: true },
+      },
+      {
         path: '/admin/horarios',
         name: 'admin-horarios',
         component: () => import('pages/admin/HorariosPage.vue'),

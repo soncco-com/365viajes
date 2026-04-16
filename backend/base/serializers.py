@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 from .models import (
     OpcionGeneral, Auditoria, Lugar, Servicio,
     Adicional, Cliente, Chofer, Guia, Horario, Responsable,
-    ServicioPrecioEspecial, ServicioParada, AdicionalPrecioEspecial
+    ServicioPrecioEspecial, ServicioParada, AdicionalPrecioEspecial,
+    OrdenServicioColumna
 )
 
 
@@ -79,6 +80,17 @@ class AdicionalPrecioEspecialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AdicionalPrecioEspecial
+        fields = '__all__'
+
+
+class OrdenServicioColumnaSerializer(serializers.ModelSerializer):
+    servicio_nombre = serializers.CharField(
+        source='servicio.nombre', read_only=True)
+    clave_display = serializers.CharField(
+        source='get_clave_display', read_only=True)
+
+    class Meta:
+        model = OrdenServicioColumna
         fields = '__all__'
 
 

@@ -13,7 +13,8 @@ from django.utils.decorators import method_decorator
 from .models import (
     OpcionGeneral, Auditoria, Lugar, Servicio,
     Adicional, Cliente, Horario, Guia, Chofer, Responsable,
-    ServicioPrecioEspecial, ServicioParada, AdicionalPrecioEspecial
+    ServicioPrecioEspecial, ServicioParada, AdicionalPrecioEspecial,
+    OrdenServicioColumna, COLUMNAS_DEFECTO
 )
 from .serializers import (
     OpcionGeneralSerializer, AuditoriaSerializer, LugarSerializer,
@@ -21,7 +22,8 @@ from .serializers import (
     ClienteSerializer, ChoferSerializer, GuiaSerializer, HorarioSerializer,
     ResponsableSerializer, UserSerializer, GroupSerializer,
     ServicioPrecioEspecialSerializer, ServicioParadaSerializer,
-    AdicionalPrecioEspecialSerializer
+    AdicionalPrecioEspecialSerializer,
+    OrdenServicioColumnaSerializer
 )
 
 
@@ -305,3 +307,44 @@ class AdicionalPrecioEspecialViewSet(viewsets.ModelViewSet):
     search_fields = ['adicional__nombre', 'cliente__nombre', 'observaciones']
     ordering_fields = '__all__'
     ordering = ['-fecha_desde']
+
+
+class OrdenServicioColumnaViewSet(viewsets.ModelViewSet):
+    """ViewSet para la configuración de columnas del PDF de Orden de Servicio"""
+    queryset = OrdenServicioColumna.objects.select_related('servicio').all()
+    serializer_class = OrdenServicioColumnaSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['servicio', 'visible']
+    ordering_fields = '__all__'
+    ordering = ['orden']
+
+    @action(detail=False, methods=['post'])
+    def inicializar(self, request):
+        """Crea las columnas por defecto para un servicio si aún no tiene ninguna."""
+        servicio_id = request.data.get('servicio')
+        if not servicio_id:
+            return Response({'error': 'El campo servicio es requerido'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            servicio = Servicio.objects.get(pk=servicio_id)
+        except Servicio.DoesNotExist:
+            return Response({'error': 'Servicio no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+        creadas = []
+        for col in COLUMNAS_DEFECTO:
+            obj, created = OrdenServicioColumna.objects.get_or_create(
+                servicio=servicio,
+                clave=col['clave'],
+                defaults={
+                    'etiqueta': col['etiqueta'],
+                    'ancho': col['ancho'],
+                    'orden': col['orden'],
+                    'visible': col['visible'],
+                }
+            )
+            if created:
+                creadas.append(col['clave'])
+
+        columnas = OrdenServicioColumna.objects.filter(
+            servicio=servicio).order_by('orden')
+        serializer = OrdenServicioColumnaSerializer(columnas, many=True)
+        return Response({'creadas': creadas, 'columnas': serializer.data})

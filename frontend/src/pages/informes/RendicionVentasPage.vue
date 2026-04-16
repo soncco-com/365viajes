@@ -131,7 +131,7 @@ const columns = [
   },
   {
     name: 'fecha_primer_servicio',
-    label: 'Fecha 1er Servicio',
+    label: 'Fecha Servicio',
     field: 'fecha_primer_servicio',
     align: 'center',
     sortable: true,
