@@ -254,7 +254,11 @@ const columns = [
     field: 'fecha',
     align: 'left',
     sortable: true,
-    format: (val) => new Date(val).toLocaleDateString('es-ES'),
+    format: (val) => {
+      if (!val) return '-'
+      const [y, m, d] = val.split('-')
+      return new Date(y, m - 1, d).toLocaleDateString('es-ES')
+    },
   },
   {
     name: 'fecha_primer_servicio',
@@ -262,7 +266,11 @@ const columns = [
     field: 'fecha_primer_servicio',
     align: 'left',
     sortable: false,
-    format: (val) => (val ? new Date(val).toLocaleDateString('es-ES') : '-'),
+    format: (val) => {
+      if (!val) return '-'
+      const [y, m, d] = val.split('-')
+      return new Date(y, m - 1, d).toLocaleDateString('es-ES')
+    },
   },
   {
     name: 'pasajero',
