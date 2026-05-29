@@ -69,6 +69,18 @@
               clearable
             />
           </div>
+          <div class="col-12 col-md-2">
+            <q-select
+              v-model="filters.tipo_documento"
+              label="Tipo de Documento"
+              :options="tipoDocumentoOptions"
+              emit-value
+              map-options
+              clearable
+              outlined
+              dense
+            />
+          </div>
           <div class="col-12 col-md-2 flex items-end">
             <q-btn color="grey" icon="clear" label="Limpiar" @click="clearFilters" flat />
           </div>
@@ -218,6 +230,7 @@ const filters = ref({
   cliente_id: null,
   estado: null,
   tipo_pago: null,
+  tipo_documento: null,
   girado_por: null,
   numero_rango: '',
 })
@@ -231,6 +244,12 @@ const tipoPagoOptions = [
   { label: 'Efectivo', value: '0' },
   { label: 'Depósito', value: '1' },
   { label: 'Otro', value: '2' },
+]
+
+const tipoDocumentoOptions = [
+  { label: 'Boleta', value: '0' },
+  { label: 'Factura', value: '1' },
+  { label: 'Otros', value: '2' },
 ]
 
 const columns = [
@@ -371,6 +390,10 @@ const loadReservas = async (props) => {
       params.tipo_pago = filters.value.tipo_pago
     }
 
+    if (filters.value.tipo_documento !== null && filters.value.tipo_documento !== undefined) {
+      params.tipo_documento = filters.value.tipo_documento
+    }
+
     if (filters.value.girado_por) {
       params.girado_por = filters.value.girado_por?.id || filters.value.girado_por
     }
@@ -424,6 +447,7 @@ const clearFilters = () => {
     cliente_id: null,
     estado: null,
     tipo_pago: null,
+    tipo_documento: null,
     girado_por: null,
     numero_rango: '',
   }

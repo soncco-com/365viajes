@@ -164,7 +164,7 @@
 
             <autocomplete-input
               v-model="ordenForm.chofer"
-              label="Chofer"
+              label="Conductor"
               endpoint="base/choferes"
               option-label="nombre"
             />

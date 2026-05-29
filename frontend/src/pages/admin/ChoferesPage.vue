@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-md">
-    <page-title title="Transportes" subtitle="Catálogo de transportes y choferes" />
+    <page-title title="Transportes" subtitle="Catálogo de transportes y conductores" />
 
     <!-- Filtros -->
     <q-card flat bordered class="q-mt-md">
@@ -42,9 +42,9 @@
       :pagination="pagination"
       @request="onRequest"
       create-button
-      create-label="Nuevo Chofer"
+      create-label="Nuevo Conductor"
       @create="showFormDialog = true"
-      no-data-label="No hay choferes registrados"
+      no-data-label="No hay conductores registrados"
       class="q-mt-md"
     >
       <template v-slot:top-right>

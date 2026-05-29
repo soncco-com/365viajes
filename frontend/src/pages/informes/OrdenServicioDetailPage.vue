@@ -24,7 +24,7 @@
             <div class="text-h6">{{ orden.guia_nombre }}</div>
           </div>
           <div class="col-12 col-md-3">
-            <div class="text-grey-7">Chofer</div>
+            <div class="text-grey-7">Conductor</div>
             <div class="text-h6">{{ orden.chofer_nombre }}</div>
           </div>
           <div class="col-12 col-md-3">

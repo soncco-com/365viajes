@@ -159,9 +159,9 @@ const tipoPagoOptions = [
 ]
 
 const tipoDocumentoOptions = [
-  { value: 'boleta', label: 'Boleta' },
-  { value: 'factura', label: 'Factura' },
-  { value: 'ninguno', label: 'Ninguno' },
+  { value: '0', label: 'Boleta' },
+  { value: '1', label: 'Factura' },
+  { value: '2', label: 'Otros' },
 ]
 
 const idiomaOptions = [

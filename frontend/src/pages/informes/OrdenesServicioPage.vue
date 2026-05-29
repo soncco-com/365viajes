@@ -39,7 +39,7 @@
           <div class="col-12 col-md-1">
             <autocomplete-input
               v-model="filters.chofer"
-              label="Chofer"
+              label="Conductor"
               endpoint="base/choferes"
               option-label="nombre"
             />
@@ -170,7 +170,7 @@ const columns = [
   },
   {
     name: 'chofer',
-    label: 'Chofer',
+    label: 'Conductor',
     field: 'chofer_nombre',
     align: 'left',
   },
