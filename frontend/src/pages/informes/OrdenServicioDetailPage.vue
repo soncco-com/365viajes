@@ -45,6 +45,7 @@
       <q-card-section>
         <div class="text-h6 q-mb-md">Detalles de Reservas ({{ orden?.detalles?.length || 0 }})</div>
         <q-table
+          ref="tableRef"
           :rows="orden?.detalles || []"
           :columns="columns"
           row-key="id"
@@ -122,6 +123,7 @@ const { notifySuccess, notifyError, confirm } = useNotify()
 const ordenId = ref(route.params.id)
 const orden = ref(null)
 const loading = ref(false)
+const tableRef = ref(null)
 let sortableInstance = null
 
 const columns = [
@@ -179,9 +181,10 @@ const columns = [
 const initSortable = () => {
   if (sortableInstance) {
     sortableInstance.destroy()
+    sortableInstance = null
   }
   nextTick(() => {
-    const tbody = document.querySelector('.q-table tbody')
+    const tbody = tableRef.value?.$el?.querySelector('tbody')
     if (!tbody) return
     sortableInstance = Sortable.create(tbody, {
       animation: 150,
@@ -204,14 +207,16 @@ const initSortable = () => {
           notifyError('Error al guardar el orden')
           await loadOrden()
         }
+        initSortable()
       },
     })
   })
 }
 
 watch(
-  () => orden.value?.detalles?.length,
+  () => orden.value?.detalles,
   () => initSortable(),
+  { flush: 'post' },
 )
 
 const formatDate = (dateStr) => {

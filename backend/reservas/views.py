@@ -838,9 +838,9 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                     'pasajero': reserva.pasajero,
                     'agencia': reserva.cliente.nombre if reserva.cliente else '',
                     'destino': reserva_detalle.destino or '',
-                    'ingresos': '\n'.join(ingresos_list) if ingresos_list else '',
-                    'almuerzo': '\n'.join(almuerzos_list) if almuerzos_list else '',
-                    'adicionales': '\n'.join(otros_adicionales) if otros_adicionales else '',
+                    'ingresos': '\n'.join(sorted(ingresos_list)) if ingresos_list else '',
+                    'almuerzo': '\n'.join(sorted(almuerzos_list)) if almuerzos_list else '',
+                    'adicionales': '\n'.join(sorted(otros_adicionales)) if otros_adicionales else '',
                     'observaciones': observaciones_final,
                     # totales internos para la fila de totales
                     '_ingresos_count': ingresos_count,

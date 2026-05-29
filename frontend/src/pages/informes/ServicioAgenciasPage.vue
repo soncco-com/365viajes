@@ -269,6 +269,13 @@ const estadoOptions = [
 
 const serviciosColumns = [
   {
+    name: 'reserva_id',
+    label: 'ID',
+    field: 'reserva_id',
+    align: 'center',
+    sortable: true,
+  },
+  {
     name: 'fecha',
     label: 'Fecha Salida',
     field: 'cuando',
@@ -330,6 +337,13 @@ const serviciosColumns = [
 ]
 
 const adicionalesColumns = [
+  {
+    name: 'reserva_id',
+    label: 'ID',
+    field: 'reserva_id',
+    align: 'center',
+    sortable: true,
+  },
   {
     name: 'cantidad',
     label: 'Cantidad',
