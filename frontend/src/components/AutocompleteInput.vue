@@ -125,6 +125,7 @@ const filteredOptions = ref([])
 const allOptions = ref([])
 const loading = ref(false)
 const currentSearchText = ref('')
+const resolvingValue = ref(false)
 
 const findOptionByValue = (value) => {
   if (value === null || value === undefined || value === '') {
@@ -134,13 +135,57 @@ const findOptionByValue = (value) => {
   return allOptions.value.find((option) => option?.id === value) || null
 }
 
-const syncModelValue = (value) => {
+const addOptionIfMissing = (option) => {
+  if (!option?.id) {
+    return
+  }
+
+  if (!allOptions.value.some((existingOption) => existingOption?.id === option.id)) {
+    allOptions.value = [...allOptions.value, option]
+  }
+
+  if (!filteredOptions.value.some((existingOption) => existingOption?.id === option.id)) {
+    filteredOptions.value = [...filteredOptions.value, option]
+  }
+}
+
+const resolveOptionById = async (value) => {
+  if (!props.endpoint || value === null || value === undefined || value === '' || resolvingValue.value) {
+    return null
+  }
+
+  resolvingValue.value = true
+  try {
+    const response = await api.get(`${props.endpoint}${value}/`)
+    const option = response.data
+    addOptionIfMissing(option)
+    return option
+  } catch (error) {
+    console.error('Error resolving autocomplete option:', error)
+    return null
+  } finally {
+    resolvingValue.value = false
+  }
+}
+
+const syncModelValue = async (value) => {
   if (value && typeof value === 'object') {
     model.value = value
     return
   }
 
-  model.value = findOptionByValue(value) || value
+  const localOption = findOptionByValue(value)
+  if (localOption) {
+    model.value = localOption
+    return
+  }
+
+  model.value = value
+
+  const remoteOption = await resolveOptionById(value)
+  if (remoteOption) {
+    model.value = remoteOption
+  }
 }
 
 const loadOptions = async () => {
@@ -160,7 +205,7 @@ const loadOptions = async () => {
     const response = await api.get(props.endpoint, { params })
     allOptions.value = response.data.results || response.data
     filteredOptions.value = allOptions.value
-    syncModelValue(props.modelValue)
+    await syncModelValue(props.modelValue)
   } catch (error) {
     console.error('Error loading autocomplete options:', error)
     allOptions.value = []
