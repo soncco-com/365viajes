@@ -126,6 +126,23 @@ const allOptions = ref([])
 const loading = ref(false)
 const currentSearchText = ref('')
 
+const findOptionByValue = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+
+  return allOptions.value.find((option) => option?.id === value) || null
+}
+
+const syncModelValue = (value) => {
+  if (value && typeof value === 'object') {
+    model.value = value
+    return
+  }
+
+  model.value = findOptionByValue(value) || value
+}
+
 const loadOptions = async () => {
   if (!props.endpoint) {
     allOptions.value = props.options
@@ -143,6 +160,7 @@ const loadOptions = async () => {
     const response = await api.get(props.endpoint, { params })
     allOptions.value = response.data.results || response.data
     filteredOptions.value = allOptions.value
+    syncModelValue(props.modelValue)
   } catch (error) {
     console.error('Error loading autocomplete options:', error)
     allOptions.value = []
@@ -212,7 +230,7 @@ const onUpdate = (value) => {
 watch(
   () => props.modelValue,
   (newVal) => {
-    model.value = newVal
+    syncModelValue(newVal)
   },
 )
 
@@ -223,6 +241,7 @@ watch(
     if (!props.endpoint) {
       allOptions.value = newOptions
       filteredOptions.value = newOptions
+      syncModelValue(props.modelValue)
     }
   },
 )
@@ -243,6 +262,7 @@ onMounted(() => {
   } else {
     allOptions.value = props.options
     filteredOptions.value = props.options
+    syncModelValue(props.modelValue)
   }
 })
 
