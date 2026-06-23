@@ -99,6 +99,7 @@ import DataTable from 'src/components/DataTable.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import PdfViewer from 'src/components/PdfViewer.vue'
+import { formatDateOnly, todayInLima } from 'src/utils/date'
 
 const api = useApi()
 const { notifyError } = useNotify()
@@ -117,11 +118,7 @@ const columns = [
     field: 'cuando',
     align: 'left',
     sortable: true,
-    format: (val) => {
-      if (!val) return ''
-      const [year, month, day] = val.split('-')
-      return `${day}/${month}/${year}`
-    },
+    format: (val) => formatDateOnly(val),
   },
   { name: 'reserva', label: 'Reserva', field: 'reserva_id', align: 'left' },
   { name: 'pasajero', label: 'Pasajero', field: 'reserva_pasajero', align: 'left' },
@@ -234,7 +231,7 @@ const imprimirPDF = async () => {
 }
 
 onMounted(() => {
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayInLima()
   filters.value.fecha = { desde: today, hasta: today }
 })
 </script>

@@ -211,6 +211,7 @@ import DataTable from 'src/components/DataTable.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import PdfViewer from 'src/components/PdfViewer.vue'
+import { formatDateOnly } from 'src/utils/date'
 
 const router = useRouter()
 const api = useApi()
@@ -273,11 +274,7 @@ const columns = [
     field: 'fecha',
     align: 'left',
     sortable: true,
-    format: (val) => {
-      if (!val) return '-'
-      const [y, m, d] = val.split('-')
-      return new Date(y, m - 1, d).toLocaleDateString('es-ES')
-    },
+    format: (val) => formatDateOnly(val, '-'),
   },
   {
     name: 'fecha_primer_servicio',
@@ -285,11 +282,7 @@ const columns = [
     field: 'fecha_primer_servicio',
     align: 'left',
     sortable: false,
-    format: (val) => {
-      if (!val) return '-'
-      const [y, m, d] = val.split('-')
-      return new Date(y, m - 1, d).toLocaleDateString('es-ES')
-    },
+    format: (val) => formatDateOnly(val, '-'),
   },
   {
     name: 'pasajero',

@@ -112,6 +112,7 @@ import DataTable from 'src/components/DataTable.vue'
 import DatePicker from 'src/components/DatePicker.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
+import { formatDateOnly, todayInLima } from 'src/utils/date'
 
 const api = useApi()
 const { notifySuccess, notifyError, confirm } = useNotify()
@@ -124,7 +125,7 @@ const saving = ref(false)
 const isEditing = ref(false)
 const filters = ref({ fecha: { desde: null, hasta: null }, usuario: null })
 const form = ref({
-  fecha: new Date().toISOString().split('T')[0],
+  fecha: todayInLima(),
   descripcion: '',
   monto: 0,
 })
@@ -136,11 +137,7 @@ const columns = [
     field: 'fecha',
     align: 'left',
     sortable: true,
-    format: (val) => {
-      if (!val) return ''
-      const [year, month, day] = val.split('-')
-      return `${day}/${month}/${year}`
-    },
+    format: (val) => formatDateOnly(val),
   },
   {
     name: 'descripcion',
@@ -218,7 +215,7 @@ const openDialog = (gasto = null) => {
     form.value = { ...gasto }
   } else {
     form.value = {
-      fecha: new Date().toISOString().split('T')[0],
+      fecha: todayInLima(),
       descripcion: '',
       monto: 0,
     }
@@ -255,7 +252,7 @@ const deleteGasto = async (gasto) => {
 }
 
 onMounted(() => {
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayInLima()
   filters.value.fecha = { desde: today, hasta: today }
   loadGastos()
 })

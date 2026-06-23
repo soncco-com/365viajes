@@ -448,7 +448,7 @@
                     <q-card-section>
                       <div class="text-h6 q-mb-md">Datos Principales</div>
                       <div class="q-gutter-sm">
-                        <div><strong>Fecha:</strong> {{ reserva.fecha }}</div>
+                        <div><strong>Fecha:</strong> {{ formatDate(reserva.fecha) }}</div>
                         <div><strong>Agencia:</strong> {{ reserva.cliente?.nombre || 'N/A' }}</div>
                         <div><strong>Pasajero:</strong> {{ reserva.pasajero }}</div>
                         <div><strong>Estado:</strong> {{ getEstadoLabel(reserva.estado) }}</div>
@@ -612,6 +612,7 @@ import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
 import DatePicker from 'src/components/DatePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
+import { formatDateOnly, todayInLima } from 'src/utils/date'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -724,13 +725,7 @@ function calcularTotal() {
 }
 
 function formatDate(dateString) {
-  if (!dateString) return 'Sin fecha'
-  const date = new Date(dateString + 'T00:00:00') // Evitar problemas de timezone
-  return date.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  return formatDateOnly(dateString, 'Sin fecha')
 }
 
 async function onServicioChange(detalle) {
@@ -751,7 +746,7 @@ async function onServicioChange(detalle) {
       })
 
       const preciosEspeciales = response.data.results || []
-      const today = new Date().toISOString().split('T')[0]
+      const today = todayInLima()
 
       // Filtrar por vigencia
       const precioVigente = preciosEspeciales.find((precio) => {
@@ -814,7 +809,7 @@ async function onAdicionalChange(adicional) {
       })
 
       const preciosEspeciales = response.data.results || []
-      const today = new Date().toISOString().split('T')[0]
+      const today = todayInLima()
 
       // Filtrar por vigencia
       const precioVigente = preciosEspeciales.find((precio) => {

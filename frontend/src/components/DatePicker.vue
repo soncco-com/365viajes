@@ -31,6 +31,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { formatDateOnly } from 'src/utils/date'
 
 const props = defineProps({
   modelValue: {
@@ -83,10 +84,7 @@ const formattedDate = computed(() => {
 
   // Convertir de YYYY-MM-DD a DD/MM/YYYY para mostrar
   if (props.mask === 'YYYY-MM-DD' && props.displayMask === 'DD/MM/YYYY') {
-    const parts = model.value.split('-')
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`
-    }
+    return formatDateOnly(model.value, model.value)
   }
 
   return model.value

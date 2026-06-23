@@ -183,6 +183,7 @@ import { useQuasar } from 'quasar'
 import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 import DatePicker from 'src/components/DatePicker.vue'
+import { todayInLima } from 'src/utils/date'
 
 const $q = useQuasar()
 const api = useApi()
@@ -207,7 +208,7 @@ const estadoOptions = [
 const form = ref({
   nombre: '',
   precio: 0,
-  fecha_precio: new Date().toISOString().split('T')[0],
+  fecha_precio: todayInLima(),
   mostrar_destinos: false,
   activo: true,
 })
@@ -313,7 +314,7 @@ const openDialog = (servicio = null) => {
     form.value = {
       nombre: '',
       precio: 0,
-      fecha_precio: new Date().toISOString().split('T')[0],
+      fecha_precio: todayInLima(),
       mostrar_destinos: false,
       activo: true,
     }

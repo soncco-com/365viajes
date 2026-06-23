@@ -136,6 +136,7 @@ import ReservaDatosTab from 'src/components/reservas/ReservaDatosTab.vue'
 import ReservaServiciosTab from 'src/components/reservas/ReservaServiciosTab.vue'
 import ReservaAdicionalesTab from 'src/components/reservas/ReservaAdicionalesTab.vue'
 import ReservaResumenTab from 'src/components/reservas/ReservaResumenTab.vue'
+import { formatDateOnly, todayInLima } from 'src/utils/date'
 
 const $q = useQuasar()
 const route = useRoute()
@@ -226,7 +227,7 @@ async function aplicarPrecioEspecialServicio(detalle) {
       })
 
       const preciosEspeciales = response.data.results || []
-      const today = new Date().toISOString().split('T')[0]
+      const today = todayInLima()
 
       const precioVigente = preciosEspeciales.find((precio) => {
         const desde = precio.fecha_desde
@@ -271,7 +272,7 @@ async function aplicarPrecioEspecialAdicional(adicional) {
       })
 
       const preciosEspeciales = response.data.results || []
-      const today = new Date().toISOString().split('T')[0]
+      const today = todayInLima()
 
       const precioVigente = preciosEspeciales.find((precio) => {
         const desde = precio.fecha_desde
@@ -604,13 +605,7 @@ function goBack() {
 }
 
 function formatDate(dateString) {
-  if (!dateString) return 'Sin fecha'
-  const date = new Date(dateString + 'T00:00:00')
-  return date.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  return formatDateOnly(dateString, 'Sin fecha')
 }
 
 onMounted(() => {

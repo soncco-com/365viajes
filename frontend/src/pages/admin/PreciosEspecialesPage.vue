@@ -250,6 +250,7 @@ import PageTitle from 'src/components/PageTitle.vue'
 import DataTable from 'src/components/DataTable.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import DatePicker from 'src/components/DatePicker.vue'
+import { formatDateOnly as formatDate, todayInLima } from 'src/utils/date'
 
 const $q = useQuasar()
 const api = useApi()
@@ -276,7 +277,7 @@ const form = ref({
   servicio: null,
   cliente: null,
   precio: 0,
-  fecha_desde: new Date().toISOString().split('T')[0],
+  fecha_desde: todayInLima(),
   fecha_hasta: null,
   activo: true,
   observaciones: '',
@@ -333,12 +334,6 @@ const pagination = ref({
   rowsPerPage: 10,
   rowsNumber: 0,
 })
-
-const formatDate = (date) => {
-  if (!date) return ''
-  const [year, month, day] = date.split('-')
-  return `${day}/${month}/${year}`
-}
 
 const loadPrecios = async (props) => {
   loading.value = true
@@ -399,7 +394,7 @@ const openDialog = (precio = null) => {
       servicio: null,
       cliente: null,
       precio: 0,
-      fecha_desde: new Date().toISOString().split('T')[0],
+      fecha_desde: todayInLima(),
       fecha_hasta: null,
       activo: true,
       observaciones: '',

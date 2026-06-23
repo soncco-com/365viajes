@@ -4,7 +4,7 @@
       <q-btn flat dense round icon="arrow_back" @click="$router.back()" class="q-mr-md" />
       <page-title
         title="Detalle de Orden de Servicio"
-        :subtitle="`Orden #${ordenId} - ${orden?.fecha || ''}`"
+        :subtitle="`Orden #${ordenId} - ${formatDate(orden?.fecha)}`"
       />
     </div>
 
@@ -114,6 +114,7 @@ import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
 import Sortable from 'sortablejs'
+import { formatDateOnly as formatDate } from 'src/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -218,12 +219,6 @@ watch(
   () => initSortable(),
   { flush: 'post' },
 )
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  const [year, month, day] = dateStr.split('-')
-  return `${day}/${month}/${year}`
-}
 
 const loadOrden = async () => {
   loading.value = true

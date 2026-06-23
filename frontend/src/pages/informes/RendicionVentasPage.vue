@@ -97,6 +97,7 @@ import DataTable from 'src/components/DataTable.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import PdfViewer from 'src/components/PdfViewer.vue'
+import { formatDateOnly, formatDateTimeInLima } from 'src/utils/date'
 
 const api = useApi()
 const { notifyError } = useNotify()
@@ -135,11 +136,7 @@ const columns = [
     field: 'fecha_primer_servicio',
     align: 'center',
     sortable: true,
-    format: (val) => {
-      if (!val) return '-'
-      const [year, month, day] = val.split('-')
-      return `${day}/${month}/${year}`
-    },
+    format: (val) => formatDateOnly(val, '-'),
   },
   {
     name: 'girado_cuando',
@@ -147,10 +144,7 @@ const columns = [
     field: 'girado_cuando',
     align: 'center',
     sortable: true,
-    format: (val) => {
-      if (!val) return '-'
-      return new Date(val).toLocaleDateString('es-PE')
-    },
+    format: (val) => formatDateTimeInLima(val, { dateOnly: true, fallback: '-' }),
   },
   { name: 'pasajero', label: 'Pasajeros', field: 'pasajero', align: 'left' },
   {

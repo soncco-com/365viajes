@@ -7,7 +7,7 @@
             <q-card-section>
               <div class="text-h6 q-mb-md">Datos Principales</div>
               <div class="q-gutter-sm">
-                <div><strong>Fecha:</strong> {{ reserva.fecha }}</div>
+                <div><strong>Fecha:</strong> {{ formatDate(reserva.fecha) }}</div>
                 <div><strong>Agencia:</strong> {{ reserva.cliente?.nombre || 'N/A' }}</div>
                 <div><strong>Pasajero:</strong> {{ reserva.pasajero }}</div>
                 <div><strong>Estado:</strong> {{ getEstadoLabel(reserva.estado) }}</div>

@@ -105,6 +105,7 @@ import DataTable from 'src/components/DataTable.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import PdfViewer from 'src/components/PdfViewer.vue'
+import { formatDateOnly, todayInLima } from 'src/utils/date'
 
 const router = useRouter()
 const api = useApi()
@@ -143,11 +144,7 @@ const columns = [
     field: 'fecha',
     align: 'left',
     sortable: true,
-    format: (val) => {
-      if (!val) return ''
-      const [year, month, day] = val.split('-')
-      return `${day}/${month}/${year}`
-    },
+    format: (val) => formatDateOnly(val),
   },
   {
     name: 'servicio',
@@ -327,7 +324,7 @@ const deleteOrden = async (orden) => {
 }
 
 onMounted(() => {
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayInLima()
   filters.value.fecha = { desde: today, hasta: today }
   loadOrdenes()
 })

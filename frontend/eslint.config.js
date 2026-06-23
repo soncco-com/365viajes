@@ -69,5 +69,24 @@ export default [
     },
   },
 
+  {
+    files: ['src/pages/**/*.{js,vue}', 'src/components/**/*.{js,vue}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.property.name='toISOString']",
+          message: 'Use todayInLima() for business dates instead of converting the date to UTC.',
+        },
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length>0]",
+          message:
+            'Use the shared date utilities to parse or format values without browser timezone shifts.',
+        },
+      ],
+    },
+  },
+
   prettierSkipFormatting,
 ]

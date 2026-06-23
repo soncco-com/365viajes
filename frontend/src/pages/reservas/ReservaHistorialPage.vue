@@ -201,6 +201,7 @@ import { useRoute } from 'vue-router'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
+import { formatDateOnly, formatDateTimeInLima, formatTimeInLima } from 'src/utils/date'
 
 const route = useRoute()
 const api = useApi()
@@ -271,21 +272,11 @@ const loadHistorial = async () => {
 }
 
 const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  return formatDateTimeInLima(dateString, { dateOnly: true, fallback: '-' })
 }
 
 const formatTime = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleTimeString('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+  return formatTimeInLima(dateString, { fallback: '-' })
 }
 
 const getAccionColor = (accion) => {
@@ -359,18 +350,9 @@ const formatValueWithDisplay = (key, value, dataObject) => {
 
   // Para fechas ISO, formatearlas
   if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
-    try {
-      const date = new Date(value)
-      if (value.includes('T')) {
-        // DateTime
-        return date.toLocaleString('es-ES')
-      } else {
-        // Date
-        return date.toLocaleDateString('es-ES')
-      }
-    } catch {
-      return value
-    }
+    return value.includes('T')
+      ? formatDateTimeInLima(value, { fallback: value })
+      : formatDateOnly(value, value)
   }
 
   return String(value)

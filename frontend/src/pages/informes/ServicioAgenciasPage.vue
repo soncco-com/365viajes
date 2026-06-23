@@ -238,6 +238,7 @@ import PageTitle from 'src/components/PageTitle.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import PdfViewer from 'src/components/PdfViewer.vue'
+import { formatDateOnly as formatDate } from 'src/utils/date'
 
 const router = useRouter()
 const api = useApi()
@@ -255,12 +256,6 @@ const filters = ref({
   cliente: null,
   estado: null,
 })
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  const [year, month, day] = dateStr.split('-')
-  return `${day}/${month}/${year}`
-}
 
 const estadoOptions = [
   { label: 'Pagado', value: '0' },

@@ -84,6 +84,7 @@
 import { computed } from 'vue'
 import { useAuth } from 'src/composables/useAuth'
 import PageTitle from 'src/components/PageTitle.vue'
+import { formatLongDateInLima } from 'src/utils/date'
 
 const { currentUser, hasPermission } = useAuth()
 
@@ -96,12 +97,7 @@ const isAdmin = computed(() => {
   return hasPermission('Administrador')
 })
 
-const currentDate = new Date().toLocaleDateString('es-ES', {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-})
+const currentDate = formatLongDateInLima()
 </script>
 
 <style scoped>

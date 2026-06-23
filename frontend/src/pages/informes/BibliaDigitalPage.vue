@@ -209,6 +209,7 @@ import { useNotify } from 'src/composables/useNotify'
 import PageTitle from 'src/components/PageTitle.vue'
 import AutocompleteInput from 'src/components/AutocompleteInput.vue'
 import DateRangePicker from 'src/components/DateRangePicker.vue'
+import { todayInLima } from 'src/utils/date'
 
 const api = useApi()
 const { notifySuccess, notifyError } = useNotify()
@@ -484,7 +485,7 @@ const saveOrdenServicio = async () => {
 
 onMounted(() => {
   // Cargar detalles de hoy por defecto
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayInLima()
   filters.value.fechas = { desde: today, hasta: today }
   loadDetalles()
 })
