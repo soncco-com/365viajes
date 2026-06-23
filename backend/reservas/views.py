@@ -501,6 +501,7 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
         ordering_map = {
             'cuando': 'cuando',
             'reserva_fecha': 'pertenece_a__fecha',
+            'reserva_id': 'pertenece_a__id',
             'reserva_numero': 'pertenece_a__numero',
             'cliente_nombre': 'pertenece_a__cliente__nombre',
             'pasajero': 'pertenece_a__pasajero',
@@ -508,6 +509,7 @@ class ReservaDetalleViewSet(viewsets.ReadOnlyModelViewSet):
             'lugar_nombre': 'recoger_en__nombre',
             '-cuando': '-cuando',
             '-reserva_fecha': '-pertenece_a__fecha',
+            '-reserva_id': '-pertenece_a__id',
             '-reserva_numero': '-pertenece_a__numero',
             '-cliente_nombre': '-pertenece_a__cliente__nombre',
             '-pasajero': '-pertenece_a__pasajero',

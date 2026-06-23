@@ -98,14 +98,14 @@
             </q-td>
           </template>
 
-          <template v-slot:body-cell-reserva_numero="props">
+          <template v-slot:body-cell-reserva_id="props">
             <q-td :props="props">
               <router-link
                 :to="`/reservas/${props.row.reserva_id}/editar`"
                 class="text-primary text-weight-medium"
                 style="text-decoration: none"
               >
-                {{ props.row.reserva_numero || 'S/N' }}
+                {{ props.row.reserva_id }}
               </router-link>
             </q-td>
           </template>
@@ -287,9 +287,9 @@ const columns = [
     sortable: true,
   },
   {
-    name: 'reserva_numero',
+    name: 'reserva_id',
     label: 'ID Reserva',
-    field: 'reserva_numero',
+    field: 'reserva_id',
     align: 'center',
     sortable: true,
   },
