@@ -16,10 +16,26 @@ const apiClient = axios.create({
   },
 })
 
+const normalizeApiUrl = (url) => {
+  if (!url || /^https?:\/\//i.test(url)) {
+    return url
+  }
+
+  const [pathWithQuery, hash = ''] = url.split('#')
+  const [path, query = ''] = pathWithQuery.split('?')
+
+  if (!path || path.endsWith('/')) {
+    return url
+  }
+
+  return `${path}/${query ? `?${query}` : ''}${hash ? `#${hash}` : ''}`
+}
+
 // Interceptor de request para agregar token
 apiClient.interceptors.request.use(
   (config) => {
     const { accessToken } = useAuth()
+    config.url = normalizeApiUrl(config.url)
     if (accessToken.value) {
       config.headers.Authorization = `Bearer ${accessToken.value}`
     }
