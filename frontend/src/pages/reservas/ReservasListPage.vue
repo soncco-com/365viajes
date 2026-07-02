@@ -119,6 +119,7 @@
       :loading="loading"
       :pagination="pagination"
       :show-totals="true"
+      :responsive-grid="false"
       @request="onRequest"
       no-data-label="No se encontraron reservas"
       class="q-mt-md"

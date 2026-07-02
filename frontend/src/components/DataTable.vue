@@ -11,7 +11,7 @@
     binary-state-sort
     flat
     bordered
-    :grid="$q.screen.lt.md"
+    :grid="isGrid"
     class="data-table-custom"
     :no-data-label="noDataLabel"
   >
@@ -128,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 
 const $q = useQuasar()
@@ -184,12 +184,17 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  responsiveGrid: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 const emit = defineEmits(['request', 'create', 'edit', 'delete', 'update:filter'])
 
 const filter = ref('')
 const internalPagination = ref({ ...props.initialPagination })
+const isGrid = computed(() => props.responsiveGrid && $q.screen.lt.md)
 
 // Sincronizar paginación interna con la prop cuando cambie
 watch(
