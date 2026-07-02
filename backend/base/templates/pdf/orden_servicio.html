@@ -3,8 +3,29 @@
 {% block title %}{{ orden.servicio.nombre }} - {{ orden.fecha|date:'d/m/Y' }}{% endblock %}
 {% block content %}
 
+<style>
+  .orden-servicio-pdf,
+  .orden-servicio-pdf * {
+    color: #000 !important;
+  }
+
+  .orden-servicio-pdf table th,
+  .orden-servicio-pdf table td {
+    border: 1px solid #000 !important;
+  }
+
+  .orden-servicio-pdf .no-border {
+    border: none !important;
+  }
+
+  .orden-servicio-pdf .pasajeros-header th {
+    background-color: #fff !important;
+  }
+</style>
+
+<div class="orden-servicio-pdf">
 <!-- Cabecera: logo + nombre del servicio en el mismo renglón -->
-<div style="display: flex; align-items: center; border-bottom: 2px solid #d84315; padding-bottom: 4px; margin-bottom: 6px; gap: 8px;">
+<div style="display: flex; align-items: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 6px; gap: 8px;">
   {% if logo_base64 %}
   <img src="{{ logo_base64 }}" alt="Logo" style="height: 32px; width: auto; flex-shrink: 0;">
   {% endif %}
@@ -12,7 +33,7 @@
 </div>
 
 <!-- Info del servicio -->
-<div style="border: 1px solid #ccc; border-radius: 3px; padding: 6px; margin-bottom: 6px;">
+<div style="border: 1px solid #000; border-radius: 3px; padding: 6px; margin-bottom: 6px;">
   <table class="no-border" style="width: 100%; margin-bottom: 4px;">
     <tr>
       <td class="no-border" width="33%">
@@ -54,17 +75,17 @@
 </div>
 
 {% if paradas %}
-<div style="padding: 3px 6px; margin-bottom: 5px; border-left: 3px solid #d84315; font-size: 9pt;">
+<div style="padding: 3px 6px; margin-bottom: 5px; border-left: 3px solid #000; font-size: 9pt;">
   <strong style="color: #37474f;">Paradas:</strong>
   <span style="color: #555;">{% for parada in paradas %}{{ parada.nombre }}{% if not forloop.last %} → {% endif %}{% endfor %}</span>
 </div>
 {% endif %}
 
 <!-- Tabla de Detalles — columnas configuradas dinámicamente por servicio -->
-<div style="margin: 4px 0 3px 0; font-size: 10pt; color: #37474f; font-weight: bold; border-bottom: 1px solid #37474f; padding-bottom: 2px;">Pasajeros ({{ detalles|length }})</div>
+<div style="margin: 4px 0 3px 0; font-size: 10pt; color: #000; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px;">Pasajeros ({{ detalles|length }})</div>
 <table style="font-size: 9pt;">
   <thead>
-    <tr style="background-color: #37474f; color: white;">
+    <tr class="pasajeros-header" style="background-color: #fff; color: #000;">
       {% for col in columnas %}
       <th width="{{ col.ancho }}%" style="text-align: center;">{{ col.etiqueta }}</th>
       {% endfor %}
@@ -120,11 +141,12 @@
 </table>
 
 {% if orden.observaciones %}
-<div style="margin-top: 6px; padding: 5px 6px; border-left: 3px solid #37474f; background-color: #f5f5f5; border-radius: 2px;">
+<div style="margin-top: 6px; padding: 5px 6px; border-left: 3px solid #000; background-color: #f5f5f5; border-radius: 2px;">
   <p style="margin: 0; font-weight: bold; font-size: 9pt; color: #37474f;">Observaciones:</p>
   <p style="margin: 2px 0 0 0; font-size: 9pt;">{{ orden.observaciones }}</p>
 </div>
 {% endif %}
 
+</div>
 {% endblock %}
 <!-- prettier-ignore-end -->
