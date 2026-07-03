@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db import transaction
 from django.db.models import Sum, Q, Max, F, Prefetch
 from django.utils import timezone
 from django.http import HttpResponse
@@ -675,7 +676,17 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
     queryset = OrdenServicio.objects.select_related(
         'servicio', 'guia', 'chofer', 'responsable'
     ).prefetch_related(
-        'ordenserviciodetalle_set__referencia__pertenece_a'
+        Prefetch(
+            'ordenserviciodetalle_set',
+            queryset=OrdenServicioDetalle.objects.select_related(
+                'referencia__pertenece_a',
+                'referencia__pertenece_a__cliente',
+                'referencia__servicio',
+                'referencia__recoger_en',
+            ).prefetch_related(
+                'referencia__pertenece_a__reservaadicionaldetalle_set__adicional'
+            ).order_by('sort', 'id'),
+        )
     ).all()
     serializer_class = OrdenServicioSerializer
     filter_backends = [DjangoFilterBackend,
@@ -731,12 +742,39 @@ class OrdenServicioViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        for idx, detalle_id in enumerate(detalle_ids):
-            OrdenServicioDetalle.objects.filter(
-                id=detalle_id, pertenece_a=orden
-            ).update(sort=idx)
+        try:
+            detalle_ids = [int(detalle_id) for detalle_id in detalle_ids]
+        except (TypeError, ValueError):
+            return Response(
+                {'error': 'detalle_ids debe contener ids numéricos'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        return Response({'message': 'Orden actualizado'})
+        current_ids = set(
+            OrdenServicioDetalle.objects.filter(
+                pertenece_a=orden
+            ).values_list('id', flat=True)
+        )
+        requested_ids = set(detalle_ids)
+
+        if requested_ids != current_ids or len(detalle_ids) != len(current_ids):
+            return Response(
+                {
+                    'error': (
+                        'detalle_ids debe incluir todos los detalles de la orden, '
+                        'sin repetir'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            for idx, detalle_id in enumerate(detalle_ids):
+                OrdenServicioDetalle.objects.filter(
+                    id=detalle_id, pertenece_a=orden
+                ).update(sort=idx)
+
+        return Response({'message': 'Orden actualizado', 'detalle_ids': detalle_ids})
 
     @action(detail=True, methods=['get'])
     def pdf(self, request, pk=None):

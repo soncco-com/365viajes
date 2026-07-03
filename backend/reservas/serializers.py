@@ -246,10 +246,49 @@ class ReservaSerializer(serializers.ModelSerializer):
 class OrdenServicioDetalleSerializer(serializers.ModelSerializer):
     reserva_detalle_info = ReservaDetalleSerializer(
         source='referencia', read_only=True)
+    column_values = serializers.SerializerMethodField()
 
     class Meta:
         model = OrdenServicioDetalle
         fields = '__all__'
+
+    def get_column_values(self, obj):
+        detalle = obj.referencia
+        reserva = detalle.pertenece_a
+        adicionales = [
+            adicional_detalle
+            for adicional_detalle in reserva.reservaadicionaldetalle_set.all()
+            if adicional_detalle.cuando == obj.pertenece_a.fecha
+        ]
+
+        ingresos = []
+        almuerzos = []
+        otros_adicionales = []
+
+        for adicional_detalle in adicionales:
+            adicional = adicional_detalle.adicional
+            if not adicional.visible:
+                continue
+
+            label = f'{adicional_detalle.cantidad}x {adicional.nombre}'
+            if adicional.boleto:
+                ingresos.append(label)
+            elif adicional.almuerzo:
+                almuerzos.append(label)
+            else:
+                otros_adicionales.append(label)
+
+        return {
+            'pax': detalle.numero_pax,
+            'hotel': detalle.recoger_en.nombre if detalle.recoger_en else '',
+            'pasajero': reserva.pasajero,
+            'agencia': reserva.cliente.nombre if reserva.cliente else '',
+            'destino': detalle.destino or '',
+            'ingresos': '\n'.join(sorted(ingresos)),
+            'almuerzo': '\n'.join(sorted(almuerzos)),
+            'adicionales': '\n'.join(sorted(otros_adicionales)),
+            'observaciones': detalle.observaciones or reserva.observaciones or '',
+        }
 
 
 class OrdenServicioSerializer(serializers.ModelSerializer):

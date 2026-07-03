@@ -62,23 +62,14 @@
               <q-td key="drag" :props="props" class="drag-handle">
                 <q-icon name="drag_indicator" size="sm" color="grey-6" />
               </q-td>
-              <q-td key="reserva_id" :props="props">
-                {{ props.row.reserva_detalle_info?.reserva_id }}
-              </q-td>
-              <q-td key="fecha" :props="props">
-                {{ formatDate(props.row.reserva_detalle_info?.cuando) }}
-              </q-td>
-              <q-td key="pasajero" :props="props">
-                {{ props.row.reserva_detalle_info?.reserva_pasajero }}
-              </q-td>
-              <q-td key="lugar" :props="props">
-                {{ props.row.reserva_detalle_info?.lugar_nombre }}
-              </q-td>
-              <q-td key="numero_pax" :props="props" class="text-center">
-                {{ props.row.reserva_detalle_info?.numero_pax }}
-              </q-td>
-              <q-td key="idioma" :props="props" class="text-center">
-                {{ props.row.reserva_detalle_info?.idioma_display }}
+              <q-td
+                v-for="column in serviceColumns"
+                :key="column.name"
+                :props="props"
+                :class="getColumnClass(column)"
+                :style="column.style"
+              >
+                {{ getColumnValue(props.row, column) }}
               </q-td>
               <q-td key="actions" :props="props" class="text-center">
                 <q-btn
@@ -108,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from 'src/composables/useApi'
 import { useNotify } from 'src/composables/useNotify'
@@ -123,92 +114,139 @@ const { notifySuccess, notifyError, confirm } = useNotify()
 
 const ordenId = ref(route.params.id)
 const orden = ref(null)
+const configuredColumns = ref([])
 const loading = ref(false)
 const tableRef = ref(null)
 let sortableInstance = null
 
-const columns = [
+const defaultServiceColumns = [
+  { clave: 'pax', etiqueta: 'PAX', ancho: 5, orden: 0, visible: true },
+  { clave: 'hotel', etiqueta: 'Hotel', ancho: 18, orden: 1, visible: true },
+  { clave: 'pasajero', etiqueta: 'Pasajero', ancho: 20, orden: 2, visible: true },
+  { clave: 'agencia', etiqueta: 'Agencia', ancho: 14, orden: 3, visible: true },
+  { clave: 'destino', etiqueta: 'Destino', ancho: 12, orden: 4, visible: true },
+  { clave: 'ingresos', etiqueta: 'Ingresos', ancho: 7, orden: 5, visible: true },
+  { clave: 'almuerzo', etiqueta: 'Almuerzo', ancho: 7, orden: 6, visible: true },
+  { clave: 'adicionales', etiqueta: 'Adicionales', ancho: 12, orden: 7, visible: true },
+  { clave: 'observaciones', etiqueta: 'Obs.', ancho: 10, orden: 8, visible: true },
+]
+
+const serviceColumns = computed(() => {
+  const source = configuredColumns.value.length ? configuredColumns.value : defaultServiceColumns
+  return [...source]
+    .filter((column) => column.visible)
+    .sort((a, b) => a.orden - b.orden)
+    .map((column) => {
+      const isCentered = ['pax', 'ingresos', 'almuerzo'].includes(column.clave)
+      return {
+        name: column.clave,
+        label: column.etiqueta,
+        field: (row) => row.column_values?.[column.clave] || '',
+        align: isCentered ? 'center' : 'left',
+        style: `width: ${column.ancho}%; max-width: ${column.ancho}%; white-space: pre-line;`,
+        headerStyle: `width: ${column.ancho}%; max-width: ${column.ancho}%;`,
+      }
+    })
+})
+
+const columns = computed(() => [
   {
     name: 'drag',
     label: '',
     field: 'drag',
     align: 'center',
     style: 'width: 40px',
+    headerStyle: 'width: 40px',
   },
-  {
-    name: 'reserva_id',
-    label: 'ID Reserva',
-    field: (row) => row.reserva_detalle_info?.reserva_id,
-    align: 'left',
-  },
-  {
-    name: 'fecha',
-    label: 'Fecha',
-    field: 'fecha',
-    align: 'left',
-  },
-  {
-    name: 'pasajero',
-    label: 'Pasajero',
-    field: (row) => row.reserva_detalle_info?.reserva_pasajero,
-    align: 'left',
-  },
-  {
-    name: 'lugar',
-    label: 'Lugar Recojo',
-    field: (row) => row.reserva_detalle_info?.lugar_nombre,
-    align: 'left',
-  },
-  {
-    name: 'numero_pax',
-    label: 'PAX',
-    field: (row) => row.reserva_detalle_info?.numero_pax,
-    align: 'center',
-  },
-  {
-    name: 'idioma',
-    label: 'Idioma',
-    field: (row) => row.reserva_detalle_info?.idioma_display,
-    align: 'center',
-  },
+  ...serviceColumns.value,
   {
     name: 'actions',
     label: 'Acciones',
     field: 'actions',
     align: 'center',
+    style: 'width: 80px',
+    headerStyle: 'width: 80px',
   },
-]
+])
 
-const initSortable = () => {
+const getColumnValue = (row, column) => {
+  const value = row.column_values?.[column.name]
+  return value === null || value === undefined || value === '' ? '-' : value
+}
+
+const getColumnClass = (column) => ({
+  'text-center': column.align === 'center',
+  'column-value': true,
+})
+
+const loadColumnas = async (servicioId) => {
+  configuredColumns.value = []
+  if (!servicioId) return
+
+  const response = await api.get('base/orden-servicio-columnas/', {
+    params: { servicio: servicioId, visible: true, page_size: 20 },
+  })
+
+  if (!response.success) {
+    notifyError('Error al cargar configuración de columnas')
+    return
+  }
+
+  configuredColumns.value = response.data.results ?? response.data
+}
+
+const destroySortable = () => {
   if (sortableInstance) {
     sortableInstance.destroy()
     sortableInstance = null
   }
+}
+
+const initSortable = () => {
+  destroySortable()
   nextTick(() => {
     const tbody = tableRef.value?.$el?.querySelector('tbody')
     if (!tbody) return
+
     sortableInstance = Sortable.create(tbody, {
       animation: 150,
       handle: '.drag-handle',
       ghostClass: 'sortable-ghost',
       onEnd: async (evt) => {
         if (evt.oldIndex === evt.newIndex) return
-        // Reordenar el array local
-        const detalles = [...orden.value.detalles]
-        const [moved] = detalles.splice(evt.oldIndex, 1)
-        detalles.splice(evt.newIndex, 0, moved)
-        orden.value.detalles = detalles
+
+        const orderedIds = Array.from(tbody.querySelectorAll('tr.sortable-row'))
+          .map((row) => row.dataset.id)
+          .filter(Boolean)
+
+        const detallesById = new Map(
+          orden.value.detalles.map((detalle) => [String(detalle.id), detalle]),
+        )
+        const detalles = orderedIds.map((id) => detallesById.get(id)).filter(Boolean)
+
+        if (detalles.length !== orden.value.detalles.length) {
+          notifyError('No se pudo determinar el nuevo orden')
+          await loadOrden()
+          return
+        }
+
         // Guardar en backend
         try {
-          await api.post(`reservas/ordenes-servicio/${ordenId.value}/reordenar/`, {
-            detalle_ids: detalles.map((d) => d.id),
-          })
+          const response = await api.post(
+            `reservas/ordenes-servicio/${ordenId.value}/reordenar/`,
+            {
+              detalle_ids: detalles.map((d) => d.id),
+            },
+          )
+          if (!response.success) {
+            throw response.error
+          }
+          orden.value.detalles = detalles
         } catch (error) {
           console.error(error)
           notifyError('Error al guardar el orden')
           await loadOrden()
         }
-        initSortable()
       },
     })
   })
@@ -225,6 +263,7 @@ const loadOrden = async () => {
   try {
     const response = await api.get(`reservas/ordenes-servicio/${ordenId.value}/`)
     orden.value = response.data
+    await loadColumnas(response.data?.servicio)
   } catch (error) {
     console.error(error)
     notifyError('Error al cargar la orden')
@@ -266,6 +305,10 @@ const deleteDetalle = async (detalle) => {
 
 onMounted(() => {
   loadOrden()
+})
+
+onBeforeUnmount(() => {
+  destroySortable()
 })
 </script>
 
